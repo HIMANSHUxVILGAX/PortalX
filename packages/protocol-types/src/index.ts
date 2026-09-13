@@ -2,7 +2,7 @@
  * PortelX Ephemeral Identity Layer - Protocol Types
  */
 
-export type SessionState = 
+export type SessionState =
   | 'INITIALIZING'
   | 'CHALLENGE_PENDING'
   | 'ACTIVE'
@@ -36,3 +36,4 @@ export interface ShredSignal {
   timestamp: number;
   wipeVerificationChecksum: string;
 }
+

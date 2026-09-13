@@ -67,3 +67,4 @@ python benchmarks/memory_zeroize/zeroize_benchmark.py
 - **Volatile-Only Memory:** No secondary storage writes (NAND Flash / SQLite / SharedPreferences).
 - **Sub-Second Wipe:** All allocated cryptographic secrets are overwritten with random bytes followed by null bytes in $< 1,000\text{ ms}$.
 - **OWASP MSTG Level 2 Compliant:** Defends against analog hole, background screenshot injection (`FLAG_SECURE`), and IPC snooping.
+

@@ -68,3 +68,4 @@ Thumbs.db
 # Redis / Local Storage Dumps
 *.rdb
 *.aof
+

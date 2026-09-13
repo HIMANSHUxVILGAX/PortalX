@@ -2,17 +2,38 @@
   "name": "portelx-primary",
   "version": "1.0.0",
   "private": true,
-  "description": "PortelX Primary Device App - User's Sovereign Identity Anchor",
+  "description": "PortelX Primary Device App — Sovereign Identity Anchor & Session Commander",
+  "main": "expo-router/entry",
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",
-    "ios": "expo start --ios"
+    "ios": "expo start --ios",
+    "web": "expo start --web",
+    "lint": "eslint .",
+    "test": "jest"
   },
   "dependencies": {
     "expo": "~51.0.0",
+    "expo-router": "~3.5.0",
     "expo-local-authentication": "~14.0.1",
     "expo-notifications": "~0.28.0",
+    "expo-status-bar": "~1.12.1",
+    "expo-camera": "~15.0.0",
     "react": "18.2.0",
-    "react-native": "0.74.1"
+    "react-native": "0.74.1",
+    "react-native-safe-area-context": "4.10.1",
+    "react-native-screens": "~3.31.1",
+    "react-native-reanimated": "~3.10.1",
+    "@react-navigation/native": "^6.1.0",
+    "@react-navigation/native-stack": "^6.9.0",
+    "axios": "^1.6.8",
+    "zustand": "^4.5.2"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.24.0",
+    "jest": "^29.7.0",
+    "eslint": "^8.57.0",
+    "typescript": "^5.4.0",
+    "@types/react": "~18.2.0"
   }
 }

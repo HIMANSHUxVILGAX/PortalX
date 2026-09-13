@@ -42,3 +42,4 @@ sequenceDiagram
 }
 ```
 Upon receipt, Host triggers immediate multi-pass zeroization in $< 1,000\text{ ms}$.
+

@@ -19,6 +19,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 @app.get("/health", tags=["System"])
 async def health_check():
     return {
@@ -27,6 +28,7 @@ async def health_check():
         "environment": settings.ENVIRONMENT,
         "zero_residue_enforced": True
     }
+
 
 @app.get("/", tags=["System"])
 async def root():
