@@ -5,7 +5,7 @@ echo ======================================================================
 echo       LAUNCHING PORTELX MANUAL CRYPTOGRAPHIC TEST CONSOLE
 echo ======================================================================
 echo.
-cd /d "%~dp0"
+cd /d "%~dp0\portelx"
 python demo_interactive_test.py
 echo.
 echo ======================================================================
