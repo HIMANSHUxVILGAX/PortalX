@@ -21,7 +21,7 @@ export default function SessionEndScreen({ navigation, route }: Props) {
   const [isComplete, setIsComplete] = useState(false);
 
   useEffect(() => {
-    let timeout: ReturnType<typeof setTimeout>;
+    let timeout: any;
 
     const runStep = (stepIndex: number) => {
       if (stepIndex >= WIPE_STEPS.length) {

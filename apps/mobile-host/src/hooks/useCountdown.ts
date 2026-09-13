@@ -7,8 +7,8 @@ export function useCountdown(
   initialSeconds: number,
   onExpire: () => void
 ): { remaining: number; cancel: () => void } {
-  const remainingRef = useRef(initialSeconds);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const remainingRef = useRef<number>(initialSeconds);
+  const intervalRef = useRef<any>(null);
 
   useEffect(() => {
     remainingRef.current = initialSeconds;

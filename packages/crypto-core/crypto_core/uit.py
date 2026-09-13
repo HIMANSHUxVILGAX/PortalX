@@ -66,9 +66,9 @@ def verify_uit(
     except (ValueError, TypeError):
         return False
 
-    payload = f"{host_device_id}:{created_at}:{expires_at}".encode("utf-8") + salt + nonce
+    payload = f"{host_device_id}:{created_at}:{expires_at}".encode(
+        "utf-8") + salt + nonce
     expected_digest = hmac.new(user_seed, payload, hashlib.sha256).hexdigest()
     expected_uit = f"uit_{expected_digest[:48]}"
 
     return hmac.compare_digest(uit, expected_uit)
-

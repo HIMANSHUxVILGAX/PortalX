@@ -10,7 +10,7 @@ export default function GuestVaultScreen({ navigation, route }: Props) {
   const { sessionId, ttl } = route.params;
   const [remainingSeconds, setRemainingSeconds] = useState(ttl);
   const [activeTab, setActiveTab] = useState<'upi' | 'documents'>('upi');
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const timerRef = useRef<any>(null);
 
   useEffect(() => {
     timerRef.current = setInterval(() => {
