@@ -12,7 +12,9 @@
       "resizeMode": "contain",
       "backgroundColor": "#0F172A"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.portelx.primary",
@@ -27,13 +29,27 @@
         "backgroundColor": "#0F172A"
       },
       "package": "com.portelx.primary",
-      "permissions": ["android.permission.CAMERA", "android.permission.USE_BIOMETRIC"]
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.USE_BIOMETRIC"
+      ]
     },
     "plugins": [
       "expo-router",
       "expo-local-authentication",
-      ["expo-camera", { "cameraPermission": "Allow PortelX to generate pairing QR codes." }],
-      ["expo-notifications", { "icon": "./assets/notification-icon.png", "color": "#1D4ED8" }]
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow PortelX to generate pairing QR codes."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#1D4ED8"
+        }
+      ]
     ]
   }
 }

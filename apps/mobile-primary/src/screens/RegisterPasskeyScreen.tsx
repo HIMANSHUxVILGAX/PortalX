@@ -53,3 +53,4 @@ const styles = StyleSheet.create({
   registerButtonText: { fontSize: 16, fontWeight: '700', color: '#FFFFFF' },
   backText: { fontSize: 14, color: '#60A5FA', textAlign: 'center' },
 });
+

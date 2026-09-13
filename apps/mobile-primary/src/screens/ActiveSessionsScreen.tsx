@@ -87,3 +87,4 @@ const styles = StyleSheet.create({
   emptyText: { fontSize: 14, color: '#64748B', textAlign: 'center', marginTop: 40 },
   backText: { fontSize: 14, color: '#60A5FA', textAlign: 'center', marginTop: 20 },
 });
+

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-export type SessionState = 
+export type SessionState =
   | 'IDLE'
   | 'PAIRING'
   | 'AUTHENTICATING'
@@ -43,3 +43,4 @@ export const useSessionStore = create<SessionStore>((set) => ({
       riskScore: null,
     }),
 }));
+

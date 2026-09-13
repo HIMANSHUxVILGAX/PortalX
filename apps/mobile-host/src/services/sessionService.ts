@@ -51,3 +51,4 @@ export async function sendHeartbeat(sessionId: string): Promise<{ alive: boolean
   const response = await apiClient.post(`/api/v1/sessions/${sessionId}/heartbeat`);
   return response.data;
 }
+

@@ -18,3 +18,4 @@ export function generateDeviceFingerprint(): string {
   }
   return fp;
 }
+

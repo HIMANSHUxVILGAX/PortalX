@@ -52,3 +52,4 @@ const styles = StyleSheet.create({
   infoValue: { fontSize: 13, fontWeight: '600', color: '#E2E8F0', fontFamily: 'monospace' },
   securityNote: { fontSize: 11, color: '#64748B', textAlign: 'center', marginTop: 20, lineHeight: 16, paddingHorizontal: 10 },
 });
+

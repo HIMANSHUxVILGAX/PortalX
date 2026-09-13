@@ -28,3 +28,4 @@ export const usePrimaryStore = create<PrimaryStore>((set) => ({
       activeSessions: state.activeSessions.filter((s) => s.sessionId !== sessionId),
     })),
 }));
+

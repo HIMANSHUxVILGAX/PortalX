@@ -43,3 +43,4 @@ export async function getActiveSessions(): Promise<Array<{
   const response = await apiClient.get('/api/v1/sessions/active');
   return response.data;
 }
+

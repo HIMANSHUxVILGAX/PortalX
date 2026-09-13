@@ -30,3 +30,4 @@ export const COLORS = {
   textDim: '#64748B',
   border: '#334155',
 } as const;
+

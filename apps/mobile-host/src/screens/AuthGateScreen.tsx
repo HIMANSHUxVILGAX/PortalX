@@ -265,3 +265,4 @@ const styles = StyleSheet.create({
     color: '#22C55E',
   },
 });
+

@@ -72,3 +72,4 @@ const styles = StyleSheet.create({
   disputeButton: { flex: 1, backgroundColor: '#DC2626', paddingVertical: 16, borderRadius: 12, alignItems: 'center' },
   disputeText: { fontSize: 15, fontWeight: '700', color: '#FFFFFF' },
 });
+
