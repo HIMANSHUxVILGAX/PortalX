@@ -1,0 +1,43 @@
+{
+  "expo": {
+    "name": "PortelX",
+    "slug": "portelx",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "portelx",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0F172A"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.portelx.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "PortelX needs camera to scan QR codes for session pairing.",
+        "NSFaceIDUsageDescription": "PortelX uses Face ID for biometric verification."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0F172A"
+      },
+      "package": "com.portelx.app",
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.USE_BIOMETRIC"
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      "expo-screen-capture",
+      "expo-local-authentication",
+      ["expo-camera", { "cameraPermission": "Allow PortelX to scan QR codes for session pairing." }],
+      ["expo-notifications", { "icon": "./assets/notification-icon.png", "color": "#1D4ED8" }]
+    ]
+  }
+}
