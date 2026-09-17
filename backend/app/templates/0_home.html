@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PayApp</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #000000; color: #ffffff; -webkit-tap-highlight-color: transparent; }
+        .glass-card { background: #111111; border: 1px solid #222222; border-radius: 24px; }
+        .bottom-nav { background: rgba(10, 10, 10, 0.9); backdrop-filter: blur(10px); border-top: 1px solid #222; }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen pb-20">
+
+<header class="flex justify-between items-center px-6 pt-10 pb-4 bg-[#111111]">
+    <div class="flex items-center gap-3">
+        <div class="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center font-bold text-lg">H</div>
+        <div>
+            <p class="text-xs text-gray-400">Welcome back,</p>
+            <p class="text-sm font-semibold">Himanshu</p>
+        </div>
+    </div>
+    <div class="flex gap-3 text-gray-300">
+        <span class="material-symbols-outlined">notifications</span>
+        <span class="material-symbols-outlined">help</span>
+    </div>
+</header>
+
+<main class="flex-1 px-4 mt-6 flex flex-col gap-6">
+    <!-- Transfer Money Options -->
+    <div class="grid grid-cols-4 gap-2">
+        <div class="flex flex-col items-center gap-2">
+            <div class="w-14 h-14 bg-[#1a1a1a] rounded-2xl flex items-center justify-center text-blue-400">
+                <span class="material-symbols-outlined text-2xl">qr_code_scanner</span>
+            </div>
+            <span class="text-xs text-center text-gray-300">Scan QR</span>
+        </div>
+        <div class="flex flex-col items-center gap-2">
+            <div class="w-14 h-14 bg-[#1a1a1a] rounded-2xl flex items-center justify-center text-blue-400">
+                <span class="material-symbols-outlined text-2xl">contacts</span>
+            </div>
+            <span class="text-xs text-center text-gray-300">Contacts</span>
+        </div>
+        <div class="flex flex-col items-center gap-2">
+            <div class="w-14 h-14 bg-[#1a1a1a] rounded-2xl flex items-center justify-center text-blue-400">
+                <span class="material-symbols-outlined text-2xl">account_balance</span>
+            </div>
+            <span class="text-xs text-center text-gray-300">To Bank</span>
+        </div>
+        <div class="flex flex-col items-center gap-2">
+            <div class="w-14 h-14 bg-[#1a1a1a] rounded-2xl flex items-center justify-center text-blue-400">
+                <span class="material-symbols-outlined text-2xl">sync_alt</span>
+            </div>
+            <span class="text-xs text-center text-gray-300">Self Tx</span>
+        </div>
+    </div>
+
+    <!-- Banner -->
+    <div class="w-full bg-gradient-to-r from-blue-900 to-indigo-900 rounded-2xl p-4 flex justify-between items-center mt-2">
+        <div>
+            <h3 class="font-semibold mb-1 text-sm">Setup UPI Lite</h3>
+            <p class="text-xs text-gray-300">Pin-less payments up to ₹500</p>
+        </div>
+        <button class="bg-white text-blue-900 px-3 py-1.5 rounded-full text-xs font-bold">Add Money</button>
+    </div>
+
+    <!-- Recent Transactions -->
+    <div>
+        <h2 class="text-lg font-semibold mb-3 px-2">Recent Transactions</h2>
+        <div class="bg-[#111] rounded-2xl p-4 flex flex-col gap-4">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center text-gray-300"><span class="material-symbols-outlined text-sm">storefront</span></div>
+                    <div><p class="text-sm font-medium">Starbucks</p><p class="text-xs text-gray-500">Today, 10:42 AM</p></div>
+                </div>
+                <span class="font-semibold text-sm">- ₹350</span>
+            </div>
+            <div class="h-[1px] w-full bg-[#222]"></div>
+            <div class="flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center text-gray-300">S</div>
+                    <div><p class="text-sm font-medium">Sahil</p><p class="text-xs text-gray-500">Yesterday</p></div>
+                </div>
+                <span class="font-semibold text-sm text-green-400">+ ₹1,000</span>
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- Bottom Nav -->
+<nav class="fixed bottom-0 w-full bottom-nav flex justify-around items-center h-16 pb-2 px-2">
+    <a href="/" class="flex flex-col items-center text-blue-500">
+        <span class="material-symbols-outlined text-2xl">home</span>
+        <span class="text-[10px] font-medium">Home</span>
+    </a>
+    <a href="#" class="flex flex-col items-center text-gray-500 hover:text-gray-300">
+        <span class="material-symbols-outlined text-2xl">history</span>
+        <span class="text-[10px] font-medium">History</span>
+    </a>
+    <a href="/profile" class="flex flex-col items-center text-gray-500 hover:text-gray-300">
+        <span class="material-symbols-outlined text-2xl">person</span>
+        <span class="text-[10px] font-medium">Profile</span>
+    </a>
+</nav>
+
+</body>
+</html>

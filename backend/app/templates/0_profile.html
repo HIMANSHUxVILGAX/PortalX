@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PayApp</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #000000; color: #ffffff; -webkit-tap-highlight-color: transparent; }
+        .glass-card { background: #111111; border: 1px solid #222222; border-radius: 24px; }
+        .bottom-nav { background: rgba(10, 10, 10, 0.9); backdrop-filter: blur(10px); border-top: 1px solid #222; }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen pb-20">
+
+<header class="flex items-center px-4 pt-12 pb-4 bg-[#111111]">
+    <h1 class="text-xl font-semibold w-full text-center">Profile</h1>
+</header>
+
+<main class="flex-1 px-4 mt-6 flex flex-col gap-6">
+    <!-- User Info -->
+    <div class="flex flex-col items-center gap-3">
+        <div class="w-20 h-20 bg-blue-600 rounded-full flex items-center justify-center font-bold text-3xl shadow-lg">H</div>
+        <div class="text-center">
+            <h2 class="text-xl font-semibold">Himanshu Badgujar</h2>
+            <p class="text-sm text-gray-400 flex items-center justify-center gap-1 mt-1">
+                himanshu@payupi <span class="material-symbols-outlined text-[14px]">content_copy</span>
+            </p>
+        </div>
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=upi://pay?pa=himanshu@payupi&pn=Himanshu&bgcolor=fff" class="w-32 h-32 rounded-xl mt-2 border border-gray-800 p-2 bg-white" alt="My QR">
+    </div>
+
+    <!-- Settings Menu -->
+    <div class="bg-[#111] rounded-2xl overflow-hidden mt-2">
+        <div class="flex items-center justify-between p-4 border-b border-[#222]">
+            <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined text-blue-400">account_balance</span>
+                <span class="text-sm font-medium">Bank Accounts</span>
+            </div>
+            <span class="material-symbols-outlined text-gray-500">chevron_right</span>
+        </div>
+        
+        <div class="flex items-center justify-between p-4 border-b border-[#222]">
+            <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined text-blue-400">language</span>
+                <span class="text-sm font-medium">Language</span>
+            </div>
+            <span class="material-symbols-outlined text-gray-500">chevron_right</span>
+        </div>
+
+        <!-- PORTELX OPTION (The Trojan Horse) -->
+        <a href="/verify" class="flex items-center justify-between p-4 bg-gray-900 hover:bg-gray-800 transition-colors cursor-pointer">
+            <div class="flex items-center gap-3">
+                <div class="bg-blue-500/20 p-1.5 rounded-lg">
+                    <span class="material-symbols-outlined text-blue-400 text-lg">shield_lock</span>
+                </div>
+                <div>
+                    <span class="text-sm font-semibold text-white block">PortelX Guest Mode</span>
+                    <span class="text-xs text-gray-400 block mt-0.5">Secure Isolated Vault</span>
+                </div>
+            </div>
+            <span class="material-symbols-outlined text-blue-400">chevron_right</span>
+        </a>
+    </div>
+</main>
+
+<!-- Bottom Nav -->
+<nav class="fixed bottom-0 w-full bottom-nav flex justify-around items-center h-16 pb-2 px-2">
+    <a href="/" class="flex flex-col items-center text-gray-500 hover:text-gray-300">
+        <span class="material-symbols-outlined text-2xl">home</span>
+        <span class="text-[10px] font-medium">Home</span>
+    </a>
+    <a href="#" class="flex flex-col items-center text-gray-500 hover:text-gray-300">
+        <span class="material-symbols-outlined text-2xl">history</span>
+        <span class="text-[10px] font-medium">History</span>
+    </a>
+    <a href="/profile" class="flex flex-col items-center text-blue-500">
+        <span class="material-symbols-outlined text-2xl">person</span>
+        <span class="text-[10px] font-medium">Profile</span>
+    </a>
+</nav>
+
+</body>
+</html>

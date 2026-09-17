@@ -1,18 +1,16 @@
-import React from 'react';
 import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
 
 export default function RootLayout() {
   return (
-    <>
-      <StatusBar style="light" backgroundColor="#0F172A" />
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          animation: 'fade',
-          contentStyle: { backgroundColor: '#0F172A' },
-        }}
-      />
-    </>
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="index" />
+      <Stack.Screen name="profile" />
+      <Stack.Screen name="portelx_dashboard" />
+      <Stack.Screen name="portelx_verification" />
+      <Stack.Screen name="portelx_vault" />
+      <Stack.Screen name="crypto_portfolio" />
+      <Stack.Screen name="manage_cards" />
+      <Stack.Screen name="portelx_zeroized" />
+    </Stack>
   );
 }
