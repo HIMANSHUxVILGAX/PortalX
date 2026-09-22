@@ -12,10 +12,10 @@
 ## 1. Current Project Status Dashboard
 
 ```
-Overall Progress: [██████░░░░░░░░░░░░░░] 30% Complete (Phase 2 In Progress)
+Overall Progress: [███████░░░░░░░░░░░░░] 35% Complete (Phase 2 In Progress)
 Phases Completed: 1 / 6
 Active Phase:     Phase 2 — Hackathon MVP & Proof of Concept
-Phase Status:     🟡 IN PROGRESS (50% of Phase 2)
+Phase Status:     🟡 IN PROGRESS (70% of Phase 2)
 ```
 
 | Phase | Phase Name | Target Progress | Timeline | Current Status | Gate Readiness |
@@ -150,8 +150,8 @@ flowchart TD
 3. **Configure Supabase & Redis:**
    - `[ ]` Supabase PostgreSQL with strict Row Level Security (RLS) policies.
    - `[ ]` Redis Cloud instance with automated sub-second TTL key eviction.
-4. **Implement Simulated UPI Rails:** Build BharatQR camera scanner and a mock ledger simulating UPI intent execution.
-5. **OpenAI Behavioral Anomaly Demo:** Integrate OpenAI GPT-4o Mini to evaluate session parameters and return risk scores.
+4. **Implement Simulated UPI Rails:** `[x]` Build BharatQR camera scanner and a mock ledger simulating UPI intent execution. (Camera Scanner UI complete)
+5. **Gemini Behavioral Anomaly Demo:** `[x]` Integrate Gemini 2.0 Flash to evaluate session parameters and return real-time risk scores on vault generation.
 6. **Integrate RevenueCat & FCM:** Wire up RevenueCat SDK for subscription tier gating and Firebase Cloud Messaging for $< 5\text{s}$ alerts.
 
 #### Acceptance Gate:
