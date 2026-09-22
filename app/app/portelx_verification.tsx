@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import * as LocalAuthentication from 'expo-local-authentication';
 
 const { width } = Dimensions.get('window');
 
@@ -38,7 +39,7 @@ export default function VerificationScreen() {
     startScanning();
   }, []);
 
-  const startScanning = () => {
+  const startScanning = async () => {
     setScanState(1);
 
     // Laser scan animation
@@ -73,16 +74,44 @@ export default function VerificationScreen() {
       ])
     ).start();
 
-    // After 2.5 seconds, identify the guest user
-    setTimeout(() => {
-      setScanState(2);
-      Animated.spring(matchCardAnim, {
-        toValue: 0,
-        tension: 50,
-        friction: 7,
-        useNativeDriver: true,
-      }).start();
-    }, 2400);
+    try {
+      const hasHardware = await LocalAuthentication.hasHardwareAsync();
+      const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+
+      if (hasHardware && isEnrolled) {
+        const result = await LocalAuthentication.authenticateAsync({
+          promptMessage: 'Authenticate to access Guest Vault',
+          disableDeviceFallback: false,
+          cancelLabel: 'Cancel'
+        });
+        
+        if (result.success) {
+          setScanState(2);
+          Animated.spring(matchCardAnim, {
+            toValue: 0,
+            tension: 50,
+            friction: 7,
+            useNativeDriver: true,
+          }).start();
+        } else {
+          setScanState(0);
+        }
+      } else {
+        // Fallback for web or emulator without biometric
+        setTimeout(() => {
+          setScanState(2);
+          Animated.spring(matchCardAnim, {
+            toValue: 0,
+            tension: 50,
+            friction: 7,
+            useNativeDriver: true,
+          }).start();
+        }, 2400);
+      }
+    } catch (e) {
+      console.log('Biometric auth error:', e);
+      setScanState(0);
+    }
   };
 
   return (

@@ -3,6 +3,8 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Modal, Animated }
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import axios from 'axios';
+import * as ScreenCapture from 'expo-screen-capture';
+import { API_BASE_URL } from '../src/constants/config';
 
 export default function PortelxVaultScreen() {
   const router = useRouter();
@@ -29,16 +31,23 @@ export default function PortelxVaultScreen() {
       Animated.timing(slideAnim, { toValue: 0, duration: 600, useNativeDriver: true })
     ]).start();
 
+    // Prevent screen capture
+    ScreenCapture.preventScreenCaptureAsync();
+
     // Fetch token
-    axios.post('http://192.168.79.44:8000/api/vault/open')
+    axios.post(`${API_BASE_URL}/api/vault/open`)
       .then(res => {
-        if (res.data && res.data.token) {
-          setToken(res.data.token);
+        if (res.data && res.data.uit) {
+          setToken(res.data.uit);
         }
       })
       .catch(err => {
         console.log('Vault open failed, using fallback token', err);
       });
+
+    return () => {
+      ScreenCapture.allowScreenCaptureAsync();
+    };
   }, []);
 
   useEffect(() => {
@@ -56,9 +65,10 @@ export default function PortelxVaultScreen() {
     setModalVisible(false);
     const start = Date.now();
     try {
-      await axios.post('http://192.168.79.44:8000/api/vault/destroy');
-      const latency = Date.now() - start;
-      router.replace({ pathname: '/portelx_zeroized', params: { latency: latency.toString(), bytes: '849302' } });
+      const res = await axios.post(`${API_BASE_URL}/api/vault/destroy`);
+      const latency = res.data.wipe_latency_ms || (Date.now() - start);
+      const bytes = res.data.bytes_zeroized || 849302;
+      router.replace({ pathname: '/portelx_zeroized', params: { latency: latency.toString(), bytes: bytes.toString() } });
     } catch (e) {
       const latency = Date.now() - start;
       router.replace({ pathname: '/portelx_zeroized', params: { latency: latency.toString(), bytes: '849302' } });
@@ -97,10 +107,21 @@ export default function PortelxVaultScreen() {
           </View>
 
           {/* Financial Sandbox */}
-          <View style={[styles.card, styles.financialCard]}>
-            <Text style={styles.cardSubtitle}>Isolated Spend Limit</Text>
+          <View style={styles.cardBox}>
+            <View style={styles.cardHeader}>
+              <Ionicons name="card-outline" size={20} color="#94A3B8" style={{ marginRight: 8 }} />
+              <Text style={styles.cardSubtitle}>Isolated Spend Limit</Text>
+            </View>
             <Text style={styles.spendLimit}>₹50,000</Text>
             <Text style={styles.upiId}>UPI: guest@portelx</Text>
+            
+            <TouchableOpacity 
+              style={styles.scanPayBtn} 
+              onPress={() => router.push('/portelx_qr_scan')}
+            >
+              <Ionicons name="qr-code-outline" size={24} color="#000" />
+              <Text style={styles.scanPayBtnText}>Scan & Pay</Text>
+            </TouchableOpacity>
           </View>
 
           {/* Streamed Documents */}
@@ -273,14 +294,30 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   spendLimit: {
-    color: '#fff',
-    fontSize: 32,
+    color: '#00E5FF',
+    fontSize: 28,
     fontWeight: 'bold',
-    marginBottom: 8,
+    marginBottom: 4,
   },
   upiId: {
-    color: '#A5B4FC',
-    fontSize: 15,
+    color: '#94A3B8',
+    fontSize: 14,
+    fontFamily: 'monospace',
+  },
+  scanPayBtn: {
+    backgroundColor: '#00E5FF',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 12,
+    borderRadius: 12,
+    marginTop: 16,
+  },
+  scanPayBtnText: {
+    color: '#000',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginLeft: 8,
   },
   tokenContainer: {
     backgroundColor: '#000',

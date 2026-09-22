@@ -4,7 +4,7 @@
 
 // Backend API base URL
 export const API_BASE_URL = __DEV__
-  ? 'http://10.0.2.2:8000'     // Android emulator → host machine
+  ? 'http://192.168.79.44:8000'     // Android emulator → host machine
   : 'https://api.portelx.app';  // Production
 
 // Session Defaults
