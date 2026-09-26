@@ -11,6 +11,7 @@ import {
   Modal,
   TextInput,
   StatusBar,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -38,6 +39,8 @@ export default function CryptoPortfolioScreen() {
   const [showAddWalletModal, setShowAddWalletModal] = useState(false);
   const [buyAmount, setBuyAmount] = useState('5000');
   const [buySuccess, setBuySuccess] = useState(false);
+  const [isBuying, setIsBuying] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<'upi' | 'sbi'>('upi');
 
   // New Wallet form
   const [newWalletAddress, setNewWalletAddress] = useState('');
@@ -74,11 +77,15 @@ export default function CryptoPortfolioScreen() {
   }, []);
 
   const handleSimulateBuy = () => {
-    setBuySuccess(true);
+    setIsBuying(true);
     setTimeout(() => {
-      setBuySuccess(false);
-      setShowBuyModal(false);
-    }, 1800);
+      setIsBuying(false);
+      setBuySuccess(true);
+      setTimeout(() => {
+        setBuySuccess(false);
+        setShowBuyModal(false);
+      }, 2000);
+    }, 2000);
   };
 
   return (
@@ -267,14 +274,14 @@ export default function CryptoPortfolioScreen() {
         <View style={{ height: 40 }} />
       </ScrollView>
 
-      {/* MODAL: BUY / RECHARGE CRYPTO WITH UPI */}
+      {/* MODAL: FIAT TO CRYPTO ON-RAMP */}
       <Modal visible={showBuyModal} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalSheet}>
             <View style={styles.modalHeader}>
               <View>
-                <Text style={styles.modalSheetTitle}>Recharge Web3 via UPI</Text>
-                <Text style={styles.modalSheetSub}>Convert INR directly to ETH or USDT</Text>
+                <Text style={styles.modalSheetTitle}>Fiat to Crypto On-Ramp</Text>
+                <Text style={styles.modalSheetSub}>Convert INR directly to BTC, ETH or USDT</Text>
               </View>
               <TouchableOpacity onPress={() => setShowBuyModal(false)} style={styles.modalClose}>
                 <Ionicons name="close" size={20} color="#94A3B8" />
@@ -286,7 +293,7 @@ export default function CryptoPortfolioScreen() {
                 <Ionicons name="checkmark-circle" size={60} color="#10B981" />
                 <Text style={styles.successStateTitle}>₹{buyAmount} Recharge Initiated!</Text>
                 <Text style={styles.successStateSub}>
-                  UPI Collect sent to your GPay / PhonePe app. Crypto will be deposited into 0x71C...3E4A in ~30s.
+                  Payment request sent. Crypto will be deposited into your vault in ~30s.
                 </Text>
               </View>
             ) : (
@@ -304,7 +311,7 @@ export default function CryptoPortfolioScreen() {
 
                 {/* Quick amount chips */}
                 <View style={styles.quickAmountRow}>
-                  {['1000', '2500', '5000', '10000', '25000'].map(amt => (
+                  {['1000', '5000', '10000', '25000', '50000'].map(amt => (
                     <TouchableOpacity
                       key={amt}
                       style={[styles.quickChip, buyAmount === amt && styles.quickChipActive]}
@@ -321,25 +328,56 @@ export default function CryptoPortfolioScreen() {
                 <View style={styles.estimateCard}>
                   <Text style={styles.estimateLabel}>ESTIMATED CRYPTO TO RECEIVE</Text>
                   <Text style={styles.estimateValue}>
-                    ≈ {(parseFloat(buyAmount || '0') / 215400).toFixed(4)} ETH
+                    ≈ {(parseFloat(buyAmount || '0') / 5000000).toFixed(4)} BTC
                   </Text>
                   <Text style={styles.estimateFee}>Network Fee: ₹24 • Slippage: 0.1%</Text>
                 </View>
 
                 {/* Payment method selector */}
-                <Text style={styles.sheetLabel}>Pay Using Linked UPI Account</Text>
-                <View style={styles.upiChoiceCard}>
-                  <Ionicons name="flash" size={20} color="#00E5FF" />
-                  <View style={{ flex: 1, marginLeft: 10 }}>
-                    <Text style={styles.upiChoiceTitle}>Primary UPI: {user?.upiId || 'rahul@portelx'}</Text>
-                    <Text style={styles.upiChoiceSub}>Linked to App Account</Text>
+                <Text style={styles.sheetLabel}>Select Payment Method</Text>
+                <TouchableOpacity 
+                  style={[styles.paymentMethodCard, paymentMethod === 'upi' && styles.paymentMethodCardActive]} 
+                  onPress={() => setPaymentMethod('upi')}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.paymentMethodLeft}>
+                    <Ionicons name="flash" size={20} color={paymentMethod === 'upi' ? "#00E5FF" : "#64748B"} />
+                    <View style={{ marginLeft: 10 }}>
+                      <Text style={styles.paymentMethodTitle}>UPI (rahul@portelx)</Text>
+                      <Text style={styles.paymentMethodSub}>Instant transfer</Text>
+                    </View>
                   </View>
-                  <Ionicons name="checkmark-circle" size={20} color="#10B981" />
-                </View>
+                  <View style={[styles.radioCircle, paymentMethod === 'upi' && styles.radioCircleActive]}>
+                    {paymentMethod === 'upi' && <View style={styles.radioInner} />}
+                  </View>
+                </TouchableOpacity>
 
-                <TouchableOpacity style={styles.payNowBtn} onPress={handleSimulateBuy} activeOpacity={0.85}>
-                  <Text style={styles.payNowText}>Pay ₹{buyAmount} via UPI</Text>
-                  <Ionicons name="arrow-forward" size={18} color="#07090E" />
+                <TouchableOpacity 
+                  style={[styles.paymentMethodCard, paymentMethod === 'sbi' && styles.paymentMethodCardActive]} 
+                  onPress={() => setPaymentMethod('sbi')}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.paymentMethodLeft}>
+                    <Ionicons name="business" size={20} color={paymentMethod === 'sbi' ? "#00E5FF" : "#64748B"} />
+                    <View style={{ marginLeft: 10 }}>
+                      <Text style={styles.paymentMethodTitle}>SBI Bank Account (•••• 1123)</Text>
+                      <Text style={styles.paymentMethodSub}>Takes 2-4 hours</Text>
+                    </View>
+                  </View>
+                  <View style={[styles.radioCircle, paymentMethod === 'sbi' && styles.radioCircleActive]}>
+                    {paymentMethod === 'sbi' && <View style={styles.radioInner} />}
+                  </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.payNowBtn} onPress={handleSimulateBuy} activeOpacity={0.85} disabled={isBuying}>
+                  {isBuying ? (
+                    <ActivityIndicator color="#07090E" />
+                  ) : (
+                    <>
+                      <Text style={styles.payNowText}>Instant Buy via {paymentMethod === 'upi' ? 'UPI' : 'SBI'}</Text>
+                      <Ionicons name="arrow-forward" size={18} color="#07090E" />
+                    </>
+                  )}
                 </TouchableOpacity>
               </>
             )}
@@ -811,22 +849,52 @@ const styles = StyleSheet.create({
     fontSize: 10,
     marginTop: 2,
   },
-  upiChoiceCard: {
+  paymentMethodCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#111827',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#1E293B',
+  },
+  paymentMethodCardActive: {
+    backgroundColor: 'rgba(0, 229, 255, 0.05)',
+    borderColor: 'rgba(0, 229, 255, 0.3)',
+  },
+  paymentMethodLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1E293B',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 16,
   },
-  upiChoiceTitle: {
+  paymentMethodTitle: {
     color: '#F8FAFC',
     fontSize: 13,
     fontWeight: '700',
   },
-  upiChoiceSub: {
+  paymentMethodSub: {
     color: '#94A3B8',
     fontSize: 11,
+    marginTop: 2,
+  },
+  radioCircle: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#334155',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  radioCircleActive: {
+    borderColor: '#00E5FF',
+  },
+  radioInner: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#00E5FF',
   },
   payNowBtn: {
     flexDirection: 'row',

@@ -152,6 +152,26 @@ export default function ProfileScreen() {
 
               <View style={styles.settingDivider} />
 
+              <TouchableOpacity style={styles.settingRow} onPress={() => router.push('/passwords_otp')}>
+                <View style={styles.settingIconContainer}>
+                  <MaterialCommunityIcons name="shield-key-outline" size={22} color="#000" />
+                </View>
+                <Text style={styles.settingLabel}>Remote Passwords & OTPs</Text>
+                <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />
+              </TouchableOpacity>
+
+              <View style={styles.settingDivider} />
+
+              <TouchableOpacity style={styles.settingRow} onPress={() => router.push('/passwords_vault')}>
+                <View style={styles.settingIconContainer}>
+                  <Ionicons name="lock-closed-outline" size={22} color="#000" />
+                </View>
+                <Text style={styles.settingLabel}>Local Password Vault</Text>
+                <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />
+              </TouchableOpacity>
+
+              <View style={styles.settingDivider} />
+
               <TouchableOpacity style={styles.settingRow}>
                 <View style={styles.settingIconContainer}>
                   <MaterialCommunityIcons name="bell-outline" size={22} color="#000" />
