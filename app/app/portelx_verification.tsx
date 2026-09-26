@@ -13,11 +13,13 @@ import {
 import { Ionicons, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as LocalAuthentication from 'expo-local-authentication';
+import { useSessionStore } from '../src/store/useSessionStore';
 
 const { width } = Dimensions.get('window');
 
 export default function VerificationScreen() {
   const router = useRouter();
+  const { openVault, setGuest, guestName, guestHandle, guestPhone } = useSessionStore();
 
   // Step state: 0 = Ready to scan, 1 = Scanning in progress, 2 = Identity Matched
   const [scanState, setScanState] = useState(0);
@@ -86,26 +88,38 @@ export default function VerificationScreen() {
         });
         
         if (result.success) {
-          setScanState(2);
-          Animated.spring(matchCardAnim, {
-            toValue: 0,
-            tension: 50,
-            friction: 7,
-            useNativeDriver: true,
-          }).start();
+          const success = await openVault('@guest', '1234');
+          if (success) {
+            setGuest('Guest User', '@guest', '');
+            setScanState(2);
+            Animated.spring(matchCardAnim, {
+              toValue: 0,
+              tension: 50,
+              friction: 7,
+              useNativeDriver: true,
+            }).start();
+          } else {
+            setScanState(0);
+          }
         } else {
           setScanState(0);
         }
       } else {
         // Fallback for web or emulator without biometric
-        setTimeout(() => {
-          setScanState(2);
-          Animated.spring(matchCardAnim, {
-            toValue: 0,
-            tension: 50,
-            friction: 7,
-            useNativeDriver: true,
-          }).start();
+        setTimeout(async () => {
+          const success = await openVault('@guest', '1234');
+          if (success) {
+            setGuest('Guest User', '@guest', '');
+            setScanState(2);
+            Animated.spring(matchCardAnim, {
+              toValue: 0,
+              tension: 50,
+              friction: 7,
+              useNativeDriver: true,
+            }).start();
+          } else {
+            setScanState(0);
+          }
         }, 2400);
       }
     } catch (e) {
@@ -205,11 +219,11 @@ export default function VerificationScreen() {
           >
             <View style={styles.matchHeader}>
               <View style={styles.avatarMini}>
-                <Text style={styles.avatarLetter}>A</Text>
+                <Text style={styles.avatarLetter}>{guestName ? guestName.charAt(0).toUpperCase() : 'G'}</Text>
               </View>
               <View style={{ flex: 1, marginLeft: 12 }}>
-                <Text style={styles.guestName}>Aakash Verma</Text>
-                <Text style={styles.guestHandle}>@aakash_guest • PortelX ID</Text>
+                <Text style={styles.guestName}>{guestName || 'Guest User'}</Text>
+                <Text style={styles.guestHandle}>{guestHandle || '@guest'} • PortelX ID</Text>
               </View>
               <View style={styles.onlineBadge}>
                 <View style={styles.dotGreen} />
@@ -221,7 +235,7 @@ export default function VerificationScreen() {
 
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>Linked Personal Phone</Text>
-              <Text style={styles.detailValue}>+91 98765-43210</Text>
+              <Text style={styles.detailValue}>{guestPhone || 'No phone linked'}</Text>
             </View>
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>Identity Protocol</Text>
@@ -236,7 +250,7 @@ export default function VerificationScreen() {
             <View style={styles.pushAlertBanner}>
               <Ionicons name="notifications" size={16} color="#00E5FF" style={{ marginRight: 8 }} />
               <Text style={styles.pushAlertText}>
-                Device auth push dispatched to Aakash's primary phone.
+                Device auth push dispatched to {guestName?.split(' ')[0] || 'Guest'}'s primary phone.
               </Text>
             </View>
           </Animated.View>

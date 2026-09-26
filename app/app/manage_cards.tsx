@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useAppStore } from '../src/store/useAppStore';
 
 const { width } = Dimensions.get('window');
 
@@ -70,6 +71,7 @@ const PaymentCard: React.FC<CardProps> = ({ type, bank, number, color, delay }) 
 
 export default function ManageCardsScreen() {
   const router = useRouter();
+  const { cards } = useAppStore();
   const nfcScale = useRef(new Animated.Value(1)).current;
   const nfcOpacity = useRef(new Animated.Value(1)).current;
 
@@ -129,27 +131,16 @@ export default function ManageCardsScreen() {
         </View>
 
         <View style={styles.cardsStack}>
-          <PaymentCard
-            type="Apple Pay"
-            bank="Wallet"
-            number="•••• •••• •••• 1234"
-            color="#1C1C1E"
-            delay={100}
-          />
-          <PaymentCard
-            type="Visa"
-            bank="HDFC Bank"
-            number="•••• •••• •••• 5678"
-            color="#1E3A8A"
-            delay={250}
-          />
-          <PaymentCard
-            type="Mastercard"
-            bank="ICICI Bank"
-            number="•••• •••• •••• 9012"
-            color="#991B1B"
-            delay={400}
-          />
+          {cards.map((card, idx) => (
+            <PaymentCard
+              key={card.id}
+              type={card.network}
+              bank={card.bank}
+              number={card.maskedNumber}
+              color={card.backgroundColor}
+              delay={100 + (idx * 150)}
+            />
+          ))}
 
           <TouchableOpacity style={styles.addCardButton}>
             <Ionicons name="add" size={32} color="#8E8E93" />

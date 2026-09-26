@@ -1,15 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Animated } from 'react-native';
-import { Camera, CameraView, useCameraPermissions } from 'expo-camera';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Animated, TextInput } from 'react-native';
+import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as ScreenCapture from 'expo-screen-capture';
+import { useSessionStore } from '../src/store/useSessionStore';
+import api from '../src/services/api';
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 const SCAN_FRAME_SIZE = width * 0.7;
 
 export default function PortelxQRScanScreen() {
   const router = useRouter();
+  const { session } = useSessionStore();
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
   const [paymentData, setPaymentData] = useState<any>(null);
@@ -55,29 +58,70 @@ export default function PortelxQRScanScreen() {
     );
   }
 
+  const [pin, setPin] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
+
   const handleBarcodeScanned = ({ type, data }: { type: string; data: string }) => {
     if (scanned) return;
     setScanned(true);
 
-    // Mock parsing BharatQR / UPI string
-    setPaymentData({
-      vpa: data.includes('pa=') ? data.split('pa=')[1].split('&')[0] : 'merchant@upi',
-      name: data.includes('pn=') ? decodeURIComponent(data.split('pn=')[1].split('&')[0]) : 'Local Merchant',
-      raw: data
-    });
+    let vpa = 'Unknown VPA';
+    let name = 'Unknown Merchant';
+    let amount = '';
+
+    if (data.includes('upi://pay')) {
+      const urlParams = new URLSearchParams(data.split('?')[1]);
+      vpa = urlParams.get('pa') || vpa;
+      name = urlParams.get('pn') ? decodeURIComponent(urlParams.get('pn')!) : name;
+      amount = urlParams.get('am') || '';
+    } else {
+      alert("Invalid QR! This is not a valid UPI payment QR code.");
+      setScanned(false);
+      return;
+    }
+
+    setPaymentData({ vpa, name, amount, raw: data });
+  };
+
+  const executePayment = async () => {
+    if (!pin || pin.length < 4) {
+      alert("Please enter a valid 4-digit PIN!");
+      return;
+    }
+    setIsProcessing(true);
+    try {
+      const res = await api.makePayment({
+        sessionId: session?.sessionId || '',
+        amount: parseFloat(paymentData.amount),
+        vpa: paymentData.vpa,
+        merchantName: paymentData.name,
+        pin: pin
+      });
+      if (res.status === 'success' || res.status === 'completed') {
+        alert(res.message || 'Payment Successful');
+        router.back();
+      } else {
+        alert("Payment Failed: " + res.message);
+        setPin('');
+      }
+    } catch (e: any) {
+      alert("Network error or payment failed: " + (e.message || 'Unknown error'));
+      setPin('');
+    }
+    setIsProcessing(false);
   };
 
   return (
     <View style={styles.container}>
-      <CameraView 
-        style={StyleSheet.absoluteFillObject} 
+      <CameraView
+        style={StyleSheet.absoluteFill}
         facing="back"
         onBarcodeScanned={scanned ? undefined : handleBarcodeScanned}
         barcodeScannerSettings={{
           barcodeTypes: ["qr"],
         }}
       />
-      
+
       {/* Dark overlay for scanner framing */}
       <View style={styles.overlay}>
         <View style={styles.overlayTop}>
@@ -117,23 +161,44 @@ export default function PortelxQRScanScreen() {
             </View>
             <Text style={styles.merchantName}>{paymentData.name}</Text>
             <Text style={styles.merchantVpa}>{paymentData.vpa}</Text>
-            
+
             <View style={styles.amountBox}>
               <Text style={styles.rupeeSymbol}>₹</Text>
-              <Text style={styles.amountText}>150.00</Text>
+              {!paymentData.raw.includes('am=') ? (
+                <TextInput
+                  style={[styles.amountText, { borderBottomWidth: 1, borderColor: '#00E5FF', minWidth: 100 }]}
+                  keyboardType="numeric"
+                  placeholder="0.00"
+                  placeholderTextColor="#64748B"
+                  value={paymentData.amount}
+                  onChangeText={(t) => setPaymentData({ ...paymentData, amount: t })}
+                  autoFocus
+                />
+              ) : (
+                <Text style={styles.amountText}>{paymentData.amount}</Text>
+              )}
             </View>
 
-            <TouchableOpacity 
-              style={styles.payBtn} 
-              onPress={() => {
-                // Return to vault after payment
-                router.back();
-              }}
+            <TextInput
+              style={styles.pinInput}
+              keyboardType="numeric"
+              secureTextEntry
+              placeholder="Enter 4-Digit UPI PIN (1234)"
+              placeholderTextColor="#64748B"
+              value={pin}
+              onChangeText={setPin}
+              maxLength={4}
+            />
+
+            <TouchableOpacity
+              style={styles.payBtn}
+              onPress={executePayment}
+              disabled={isProcessing}
             >
-              <Text style={styles.payBtnText}>Pay Securely via Vault</Text>
+              <Text style={styles.payBtnText}>{isProcessing ? "Processing..." : "Pay Securely via Vault"}</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.cancelBtn} onPress={() => setScanned(false)}>
+            <TouchableOpacity style={styles.cancelBtn} onPress={() => { setScanned(false); setPin(''); }}>
               <Text style={styles.cancelBtnText}>Cancel</Text>
             </TouchableOpacity>
           </View>
@@ -166,7 +231,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   overlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   overlayTop: {
     flex: 1,
@@ -237,7 +302,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   paymentModal: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(0,0,0,0.85)',
     justifyContent: 'flex-end',
   },
@@ -285,6 +350,18 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 42,
     fontWeight: 'bold',
+  },
+  pinInput: {
+    backgroundColor: '#0F172A',
+    width: '100%',
+    padding: 16,
+    borderRadius: 12,
+    color: '#fff',
+    fontSize: 18,
+    textAlign: 'center',
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#334155',
   },
   payBtn: {
     backgroundColor: '#00E5FF',

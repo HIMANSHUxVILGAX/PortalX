@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 
@@ -8,7 +8,33 @@ export default function ZeroizedScreen() {
   const params = useLocalSearchParams();
   
   const latency = params.latency || '0.0014';
-  const bytes = params.bytes || '44';
+  const targetBytes = parseInt(params.bytes as string) || 44;
+
+  const [displayBytes, setDisplayBytes] = useState(0);
+
+  useEffect(() => {
+    let start = 0;
+    const duration = 800;
+    const stepTime = 20;
+    const steps = duration / stepTime;
+    const increment = targetBytes / steps;
+    
+    if (targetBytes <= 0) {
+      setDisplayBytes(targetBytes);
+      return;
+    }
+    
+    const timer = setInterval(() => {
+      start += increment;
+      if (start >= targetBytes) {
+        setDisplayBytes(targetBytes);
+        clearInterval(timer);
+      } else {
+        setDisplayBytes(Math.floor(start));
+      }
+    }, stepTime);
+    return () => clearInterval(timer);
+  }, [targetBytes]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -33,7 +59,7 @@ export default function ZeroizedScreen() {
           
           <View style={styles.row}>
             <Text style={styles.label}>Bytes Shredded:</Text>
-            <Text style={styles.valueGreen}>{bytes} Bytes</Text>
+            <Text style={styles.valueGreen}>{displayBytes} Bytes</Text>
           </View>
           
           <View style={styles.row}>

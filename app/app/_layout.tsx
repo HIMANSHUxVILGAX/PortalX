@@ -5,6 +5,7 @@ export default function RootLayout() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="index" />
       <Stack.Screen name="profile" />
+      <Stack.Screen name="subscription" />
       <Stack.Screen name="portelx_dashboard" />
       <Stack.Screen name="portelx_verification" />
       <Stack.Screen name="portelx_vault" />

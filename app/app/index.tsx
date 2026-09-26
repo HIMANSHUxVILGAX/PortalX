@@ -13,16 +13,35 @@ import {
   StatusBar,
   Modal,
 } from 'react-native';
-import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useAppStore } from '../src/store/useAppStore';
 
 const { width } = Dimensions.get('window');
+
+const formatINR = (amount: number): string => {
+  const abs = Math.abs(amount);
+  if (abs >= 10000000) return `${(amount / 10000000).toFixed(2)}Cr`;
+  if (abs >= 100000) return `${(amount / 100000).toFixed(2)}L`;
+  return amount.toLocaleString('en-IN');
+};
 
 export default function Home() {
   const router = useRouter();
 
-  // 1. Theme State (Dark / Light Mode)
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const { 
+    user, 
+    isDarkMode, 
+    toggleTheme, 
+    cards, 
+    wallets, 
+    addWallet, 
+    transactions, 
+    documents, 
+    totalFiatBalance, 
+    totalCryptoBalance, 
+    totalNetWorth 
+  } = useAppStore();
 
   // 2. Transaction Filter State ('all' | 'received' | 'sent' | 'crypto')
   const [txFilter, setTxFilter] = useState<'all' | 'received' | 'sent' | 'crypto'>('all');
@@ -31,10 +50,6 @@ export default function Home() {
   const [showAddCryptoModal, setShowAddCryptoModal] = useState(false);
   const [walletAddressInput, setWalletAddressInput] = useState('');
   const [selectedChain, setSelectedChain] = useState<'ETH' | 'SOL' | 'BTC'>('ETH');
-  const [connectedWallets, setConnectedWallets] = useState([
-    { id: 'w1', name: 'Primary Vault', address: '0x71C...3E4A', chain: 'ETH', balance: '₹6,45,210' },
-    { id: 'w2', name: 'Phantom Hot Wallet', address: '9xP2...K891', chain: 'SOL', balance: '₹2,00,000' },
-  ]);
 
   // Entrance Animations
   const animValues = useRef([...Array(6)].map(() => new Animated.Value(0))).current;
@@ -64,57 +79,33 @@ export default function Home() {
     ],
   });
 
-  // Cards Data (Fiat & Global)
-  const cards = [
-    { id: 1, bank: 'HDFC Bank', network: 'Visa Platinum', balance: '₹1,12,450', number: '•••• 4521', expires: '12/28', bg: '#0F172A', badge: 'Default' },
-    { id: 2, bank: 'ICICI Bank', network: 'Mastercard World', balance: '₹4,230', number: '•••• 8912', expires: '08/26', bg: '#EA580C', badge: 'UPI Linked' },
-    { id: 3, bank: 'SBI', network: 'RuPay Select', balance: '₹45,000', number: '•••• 1123', expires: '03/27', bg: '#0284C7', badge: 'Credit on UPI' },
-  ];
-
   // Quick Action Buttons
   const quickActions = [
-    { icon: 'qr-code-outline', label: 'Scan & Pay', color: '#2563EB', action: () => router.push('/manage_cards') },
+    { icon: 'qr-code-outline', label: 'Scan & Pay', color: '#2563EB', action: () => router.push('/portelx_qr_scan') },
     { icon: 'send-outline', label: 'Send Money', color: '#10B981', action: () => router.push('/manage_cards') },
-    { icon: 'wallet-outline', label: 'Buy Crypto', color: '#F59E0B', action: () => router.push('/crypto_portfolio') },
+    { icon: 'wallet-outline', label: 'Buy Crypto', color: '#F59E0B', action: () => router.push('/portelx_vault') },
     { icon: 'card-outline', label: 'All Cards', color: '#8B5CF6', action: () => router.push('/manage_cards') },
   ];
 
-  // Documents Data
-  const documents = [
-    { id: 1, title: 'Aadhaar Card', subtitle: 'UIDAI Verified • 9821-XXXX-4102', icon: 'finger-print-outline', verified: true },
-    { id: 2, title: 'Driving License', subtitle: 'MoRTH Verified • DL-0420210084', icon: 'car-outline', verified: true },
-    { id: 3, title: 'ABHA Health ID', subtitle: 'National Health Authority • Active', icon: 'medical-outline', verified: true },
-  ];
-
-  // Transactions Data (with type tags for real filtering)
-  const allTransactions = [
-    { id: 1, name: 'Swiggy Food Delivery', category: 'Food & Dining', amount: '-₹349', time: 'Today, 2:15 PM', icon: 'fast-food-outline', type: 'sent', bank: 'HDFC ••4521' },
-    { id: 2, name: 'Vikash Kumar', category: 'UPI Transfer', amount: '+₹2,500', time: 'Today, 11:30 AM', icon: 'arrow-down-circle-outline', type: 'received', bank: 'SBI ••1123' },
-    { id: 3, name: 'MoonPay Web3 Ramp', category: 'Bought 0.015 ETH', amount: '+₹45,000', time: 'Yesterday, 8:40 PM', icon: 'logo-bitcoin', type: 'crypto', bank: 'Ethereum Vault' },
-    { id: 4, name: 'Jio 5G Recharge', category: 'Utility Bills', amount: '-₹599', time: 'Yesterday, 3:10 PM', icon: 'phone-portrait-outline', type: 'sent', bank: 'ICICI ••8912' },
-    { id: 5, name: 'Ananya Sharma', category: 'Split Bill Repay', amount: '+₹1,200', time: '15 Sep, 6:20 PM', icon: 'arrow-down-circle-outline', type: 'received', bank: 'HDFC ••4521' },
-    { id: 6, name: 'Amazon Prime Order', category: 'E-Commerce', amount: '-₹1,499', time: '14 Sep, 9:05 PM', icon: 'cart-outline', type: 'sent', bank: 'HDFC ••4521' },
-    { id: 7, name: 'Uniswap Liquidity Swap', category: 'Swapped USDT to SOL', amount: '+₹18,500', time: '13 Sep, 1:12 PM', icon: 'swap-horizontal', type: 'crypto', bank: 'Phantom 9xP2' },
-  ];
-
   // Filtered list
-  const filteredTransactions = allTransactions.filter(tx => {
+  const filteredTransactions = transactions?.filter((tx: any) => {
     if (txFilter === 'all') return true;
     return tx.type === txFilter;
-  });
+  }) || [];
 
   const handleAddWallet = () => {
     if (walletAddressInput.trim()) {
       const newWallet = {
         id: `w_${Date.now()}`,
         name: `${selectedChain} Imported Wallet`,
-        address: walletAddressInput.length > 12 
+        address: walletAddressInput,
+        displayAddress: walletAddressInput.length > 12 
           ? `${walletAddressInput.slice(0, 6)}...${walletAddressInput.slice(-4)}` 
           : walletAddressInput,
         chain: selectedChain,
-        balance: '₹50,000',
+        balance: 50000,
       };
-      setConnectedWallets([...connectedWallets, newWallet]);
+      addWallet(newWallet as any);
       setWalletAddressInput('');
       setShowAddCryptoModal(false);
     }
@@ -143,11 +134,11 @@ export default function Home() {
           <View style={styles.headerTop}>
             <View>
               <Text style={[styles.greetingText, { color: theme.subText }]}>Namaste,</Text>
-              <Text style={[styles.nameText, { color: theme.text }]}>Rahul Sharma</Text>
+              <Text style={[styles.nameText, { color: theme.text }]}>{user?.displayName}</Text>
               {/* UPI ID Badge */}
               <View style={[styles.upiIdBadge, { backgroundColor: isDarkMode ? 'rgba(0, 229, 255, 0.1)' : '#EFF6FF' }]}>
                 <Ionicons name="flash" size={12} color="#00E5FF" />
-                <Text style={styles.upiIdText}>rahul@portelx</Text>
+                <Text style={styles.upiIdText}>{user?.upiId}</Text>
                 <Text style={styles.upiVerified}>• Multi-Rail Verified</Text>
               </View>
             </View>
@@ -156,7 +147,7 @@ export default function Home() {
               {/* DARK / LIGHT MODE TOGGLE */}
               <TouchableOpacity
                 style={[styles.themeToggleBtn, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}
-                onPress={() => setIsDarkMode(!isDarkMode)}
+                onPress={toggleTheme}
                 activeOpacity={0.8}
               >
                 <Ionicons
@@ -169,7 +160,7 @@ export default function Home() {
               {/* Profile Avatar */}
               <TouchableOpacity onPress={() => router.push('/profile')} style={styles.avatarButton}>
                 <Image
-                  source={{ uri: 'https://ui-avatars.com/api/?name=Rahul+Sharma&background=1E293B&color=00e5ff' }}
+                  source={{ uri: user?.avatarUrl || 'https://ui-avatars.com/api/?name=User&background=1E293B&color=00e5ff' }}
                   style={styles.avatar}
                 />
               </TouchableOpacity>
@@ -181,7 +172,7 @@ export default function Home() {
             <View style={styles.netWorthTop}>
               <View>
                 <Text style={styles.netWorthLabel}>TOTAL COMBINED NET WORTH</Text>
-                <Text style={styles.netWorthAmount}>₹10,06,890.50</Text>
+                <Text style={styles.netWorthAmount}>{totalNetWorth ? (totalNetWorth() < 0 ? `-₹${formatINR(Math.abs(totalNetWorth()))}` : `₹${formatINR(totalNetWorth())}`) : '₹0'}</Text>
               </View>
               <View style={styles.growthPill}>
                 <Ionicons name="trending-up" size={14} color="#10B981" />
@@ -191,11 +182,11 @@ export default function Home() {
             <View style={styles.breakdownRow}>
               <View style={styles.breakdownItem}>
                 <View style={[styles.dotIndicator, { backgroundColor: '#0284C7' }]} />
-                <Text style={styles.breakdownText}>Fiat UPI: ₹1,61,680</Text>
+                <Text style={styles.breakdownText}>Fiat UPI: {totalFiatBalance ? `₹${formatINR(totalFiatBalance())}` : '₹0'}</Text>
               </View>
               <View style={styles.breakdownItem}>
                 <View style={[styles.dotIndicator, { backgroundColor: '#F59E0B' }]} />
-                <Text style={styles.breakdownText}>Web3 Crypto: ₹8,45,210</Text>
+                <Text style={styles.breakdownText}>Web3 Crypto: {totalCryptoBalance ? `₹${formatINR(totalCryptoBalance())}` : '₹0'}</Text>
               </View>
             </View>
           </View>
@@ -208,7 +199,7 @@ export default function Home() {
               placeholderTextColor={theme.subText}
               style={[styles.searchInput, { color: theme.text }]}
             />
-            <TouchableOpacity style={styles.qrSearchBtn}>
+            <TouchableOpacity style={styles.qrSearchBtn} onPress={() => router.push('/portelx_qr_scan')}>
               <Ionicons name="scan-outline" size={18} color="#00E5FF" />
             </TouchableOpacity>
           </View>
@@ -219,26 +210,26 @@ export default function Home() {
           <View style={styles.sectionHeaderRow}>
             <Text style={[styles.sectionTitle, { color: theme.text }]}>Payment Rails & Wallets</Text>
             <TouchableOpacity onPress={() => router.push('/manage_cards')}>
-              <Text style={styles.manageAllText}>Manage All ({cards.length + 1}) →</Text>
+              <Text style={styles.manageAllText}>Manage All ({cards?.length ? cards.length + 1 : 1}) →</Text>
             </TouchableOpacity>
           </View>
 
           <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingLeft: 20 }}>
             {/* FIAT / BANK CARDS */}
-            {cards.map((card) => (
-              <View key={card.id} style={[styles.card, { backgroundColor: card.bg }]}>
+            {cards?.map((card: any) => (
+              <View key={card.id} style={[styles.card, { backgroundColor: card.backgroundColor }]}>
                 <View style={styles.cardHeader}>
                   <Text style={styles.cardBank}>{card.bank}</Text>
                   <View style={styles.cardBadge}>
-                    <Text style={styles.cardBadgeText}>{card.badge}</Text>
+                    <Text style={styles.cardBadgeText}>{card.badge || 'Active'}</Text>
                   </View>
                 </View>
                 <View style={styles.cardBody}>
                   <Text style={styles.balanceLabel}>AVAILABLE BALANCE</Text>
-                  <Text style={styles.balanceText}>{card.balance}</Text>
+                  <Text style={styles.balanceText}>{card.balance < 0 ? `-₹${formatINR(Math.abs(card.balance))}` : `₹${formatINR(card.balance)}`}</Text>
                 </View>
                 <View style={styles.cardFooter}>
-                  <Text style={styles.cardNumber}>{card.number}</Text>
+                  <Text style={styles.cardNumber}>{card.maskedNumber}</Text>
                   <View style={{ alignItems: 'flex-end' }}>
                     <Text style={styles.expiresLabel}>{card.network}</Text>
                     <Text style={styles.expiresText}>Exp {card.expires}</Text>
@@ -249,7 +240,7 @@ export default function Home() {
 
             {/* WEB3 CRYPTO PORTFOLIO CARD */}
             <TouchableOpacity
-              onPress={() => router.push('/crypto_portfolio')}
+              onPress={() => router.push('/portelx_vault')}
               activeOpacity={0.9}
               style={[styles.card, styles.cryptoCard]}
             >
@@ -265,10 +256,10 @@ export default function Home() {
               </View>
               <View style={styles.cardBody}>
                 <Text style={[styles.balanceLabel, { color: '#94A3B8' }]}>WEB3 ASSETS TOTAL</Text>
-                <Text style={[styles.balanceText, { color: '#FFF' }]}>₹8,45,210.00</Text>
+                <Text style={[styles.balanceText, { color: '#FFF' }]}>{totalCryptoBalance ? `₹${formatINR(totalCryptoBalance())}` : '₹0'}</Text>
               </View>
               <View style={styles.cardFooter}>
-                <Text style={[styles.cardNumber, { color: '#00E5FF', fontSize: 13 }]}>0x71C...3E4A (ETH/SOL)</Text>
+                <Text style={[styles.cardNumber, { color: '#00E5FF', fontSize: 13 }]}>{wallets?.[0]?.displayAddress || '0x71C...3E4A'}</Text>
                 <View style={{ alignItems: 'flex-end' }}>
                   <Text style={[styles.expiresLabel, { color: '#10B981', fontWeight: '800' }]}>+12.4%</Text>
                   <Text style={[styles.expiresText, { color: '#94A3B8' }]}>24h Yield</Text>
@@ -336,9 +327,9 @@ export default function Home() {
         <Animated.View style={[styles.sectionContainer, getAnimStyle(4)]}>
           <View style={styles.sectionHeaderRow}>
             <Text style={[styles.sectionTitle, { color: theme.text }]}>Identity Documents (DigiLocker)</Text>
-            <Text style={styles.verifiedCountText}>3 Verified</Text>
+            <Text style={styles.verifiedCountText}>{documents?.length || 0} Verified</Text>
           </View>
-          {documents.map((doc) => (
+          {documents?.map((doc: any) => (
             <View key={doc.id} style={[styles.documentItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
               <View style={[styles.documentIconContainer, { backgroundColor: isDarkMode ? '#1E293B' : '#F1F5F9' }]}>
                 <Ionicons name={doc.icon as any} size={22} color={isDarkMode ? '#00E5FF' : '#374151'} />
@@ -403,7 +394,7 @@ export default function Home() {
                 <Text style={[styles.emptyFilterText, { color: theme.subText }]}>No transactions in this filter.</Text>
               </View>
             ) : (
-              filteredTransactions.map((tx, idx) => (
+              filteredTransactions.map((tx: any, idx: number) => (
                 <View
                   key={tx.id}
                   style={[
@@ -435,7 +426,7 @@ export default function Home() {
                   <View style={styles.transactionInfo}>
                     <Text style={[styles.transactionName, { color: theme.text }]}>{tx.name}</Text>
                     <Text style={[styles.transactionCategory, { color: theme.subText }]}>
-                      {tx.category} • {tx.bank}
+                      {tx.category} • {tx.source}
                     </Text>
                   </View>
                   <View style={{ alignItems: 'flex-end' }}>
@@ -448,9 +439,9 @@ export default function Home() {
                         },
                       ]}
                     >
-                      {tx.amount}
+                      {tx.formattedAmount}
                     </Text>
-                    <Text style={styles.txTimeText}>{tx.time}</Text>
+                    <Text style={styles.txTimeText}>{tx.timestamp}</Text>
                   </View>
                 </View>
               ))
@@ -523,8 +514,8 @@ export default function Home() {
             </View>
 
             {/* ALREADY CONNECTED WALLETS LIST */}
-            <Text style={[styles.inputLabel, { marginTop: 14 }]}>Active Linked Wallets ({connectedWallets.length})</Text>
-            {connectedWallets.map(w => (
+            <Text style={[styles.inputLabel, { marginTop: 14 }]}>Active Linked Wallets ({wallets?.length || 0})</Text>
+            {wallets?.map((w: any) => (
               <View key={w.id} style={styles.linkedWalletItem}>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                   <Ionicons name="wallet-outline" size={18} color="#00E5FF" style={{ marginRight: 8 }} />
@@ -533,11 +524,11 @@ export default function Home() {
                       {w.name} ({w.chain})
                     </Text>
                     <Text style={{ color: '#94A3B8', fontSize: 11, fontFamily: 'monospace' }}>
-                      {w.address}
+                      {w.displayAddress || w.address}
                     </Text>
                   </View>
                 </View>
-                <Text style={{ color: '#10B981', fontWeight: '700', fontSize: 13 }}>{w.balance}</Text>
+                <Text style={{ color: '#10B981', fontWeight: '700', fontSize: 13 }}>{w.balance < 0 ? `-₹${formatINR(Math.abs(w.balance))}` : `₹${formatINR(w.balance)}`}</Text>
               </View>
             ))}
 
@@ -556,7 +547,7 @@ export default function Home() {
           <Ionicons name="home" size={24} color="#00E5FF" />
           <Text style={[styles.tabLabel, { color: '#00E5FF' }]}>Super Wallet</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.tabItem} onPress={() => router.push('/crypto_portfolio')}>
+        <TouchableOpacity style={styles.tabItem} onPress={() => router.push('/portelx_vault')}>
           <Ionicons name="logo-bitcoin" size={24} color="#94A3B8" />
           <Text style={[styles.tabLabel, { color: theme.subText }]}>Web3</Text>
         </TouchableOpacity>

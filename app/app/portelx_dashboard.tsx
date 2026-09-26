@@ -4,16 +4,17 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  ScrollView,
   Animated,
   SafeAreaView,
   StatusBar,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
+import { useSessionStore } from '../src/store/useSessionStore';
 
 export default function PortelXDashboard() {
   const router = useRouter();
+  const { guestName, guestHandle, guestPhone, history, fetchHistory } = useSessionStore();
 
   // Selected Guest Plan: 'basic' | 'premium' | 'bundle'
   const [selectedPlan, setSelectedPlan] = useState<'basic' | 'premium' | 'bundle'>('premium');
@@ -24,6 +25,8 @@ export default function PortelXDashboard() {
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
+    fetchHistory();
+    
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -55,44 +58,52 @@ export default function PortelXDashboard() {
   }, []);
 
   // Previous guest rooms dispatched to the guest's personal phone
-  const GUEST_PAST_ROOMS = [
+  const FALLBACK_ROOMS = [
     {
-      roomId: 'RM-9842-DEL',
-      device: 'Samsung Galaxy S24 Ultra',
+      room_id: 'RM-9842-DEL',
+      device_name: 'Samsung Galaxy S24 Ultra',
       location: 'IGI Airport T3, New Delhi',
-      date: 'Today, 2:15 PM',
-      duration: '4m 12s',
-      status: 'SHREDDED • 0x00',
-      sentTo: '+91 98765-43210',
+      created_at: 'Today, 2:15 PM',
+      duration_seconds: 252,
+      status: 'SHREDDED',
+      bytes_zeroized: 0,
     },
     {
-      roomId: 'RM-8172-BLR',
-      device: 'OnePlus 12',
+      room_id: 'RM-8172-BLR',
+      device_name: 'OnePlus 12',
       location: 'Indiranagar, Bengaluru',
-      date: '15 Sep, 7:40 PM',
-      duration: '8m 30s',
-      status: 'SHREDDED • 0x00',
-      sentTo: '+91 98765-43210',
+      created_at: '15 Sep, 7:40 PM',
+      duration_seconds: 510,
+      status: 'SHREDDED',
+      bytes_zeroized: 0,
     },
     {
-      roomId: 'RM-6319-MUM',
-      device: 'iPhone 15 Pro Max',
+      room_id: 'RM-6319-MUM',
+      device_name: 'iPhone 15 Pro Max',
       location: 'BKC, Mumbai',
-      date: '12 Sep, 11:20 AM',
-      duration: '3m 45s',
-      status: 'SHREDDED • 0x00',
-      sentTo: '+91 98765-43210',
+      created_at: '12 Sep, 11:20 AM',
+      duration_seconds: 225,
+      status: 'SHREDDED',
+      bytes_zeroized: 0,
     },
     {
-      roomId: 'RM-5104-JPR',
-      device: 'Google Pixel 8 Pro',
+      room_id: 'RM-5104-JPR',
+      device_name: 'Google Pixel 8 Pro',
       location: 'Malviya Nagar, Jaipur',
-      date: '08 Sep, 5:10 PM',
-      duration: '14m 02s',
-      status: 'SHREDDED • 0x00',
-      sentTo: '+91 98765-43210',
+      created_at: '08 Sep, 5:10 PM',
+      duration_seconds: 842,
+      status: 'SHREDDED',
+      bytes_zeroized: 0,
     },
   ];
+
+  const rooms = history && history.length > 0 ? history : FALLBACK_ROOMS;
+
+  const formatDuration = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}m ${s}s`;
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -121,16 +132,16 @@ export default function PortelXDashboard() {
         <View style={styles.guestProfileCard}>
           <View style={styles.guestProfileTop}>
             <View style={styles.guestAvatar}>
-              <Text style={styles.guestAvatarText}>A</Text>
+              <Text style={styles.guestAvatarText}>{guestName ? guestName.charAt(0).toUpperCase() : 'G'}</Text>
             </View>
             <View style={{ flex: 1, marginLeft: 14 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Text style={styles.guestName}>Aakash Verma</Text>
+                <Text style={styles.guestName}>{guestName || 'Guest User'}</Text>
                 <View style={styles.verifiedPill}>
                   <Text style={styles.verifiedPillText}>VERIFIED</Text>
                 </View>
               </View>
-              <Text style={styles.guestPhone}>📱 +91 98765-43210 (Guest Phone)</Text>
+              <Text style={styles.guestPhone}>📱 {guestPhone || 'No phone linked'} (Guest Phone)</Text>
               <Text style={styles.guestNote}>Owner's device borrowed • Personal account loaded</Text>
             </View>
           </View>
@@ -236,25 +247,25 @@ export default function PortelXDashboard() {
             </TouchableOpacity>
           </View>
           <Text style={styles.sectionSubtitle}>
-            Rooms dispatched to your personal phone (+91 98765-43210) with device and location logs.
+            Rooms dispatched to your personal phone ({guestPhone || '+91 98765-43210'}) with device and location logs.
           </Text>
 
           <View style={styles.roomsList}>
-            {GUEST_PAST_ROOMS.map((room, index) => (
+            {rooms.map((room, index) => (
               <View key={index} style={styles.roomItem}>
                 <View style={styles.roomItemTop}>
                   <View style={styles.roomIdBox}>
-                    <Text style={styles.roomIdText}>{room.roomId}</Text>
+                    <Text style={styles.roomIdText}>{room.room_id}</Text>
                   </View>
                   <View style={styles.shreddedBadge}>
                     <Ionicons name="trash-bin" size={12} color="#10B981" style={{ marginRight: 4 }} />
-                    <Text style={styles.shreddedText}>{room.status}</Text>
+                    <Text style={styles.shreddedText}>{room.status} • 0x00</Text>
                   </View>
                 </View>
 
                 <View style={styles.roomDetailRow}>
                   <Ionicons name="phone-portrait-outline" size={14} color="#94A3B8" style={{ marginRight: 6 }} />
-                  <Text style={styles.roomDeviceText}>{room.device}</Text>
+                  <Text style={styles.roomDeviceText}>{room.device_name || room.device || 'Unknown Device'}</Text>
                 </View>
 
                 <View style={styles.roomDetailRow}>
@@ -263,7 +274,7 @@ export default function PortelXDashboard() {
                 </View>
 
                 <View style={styles.roomFooter}>
-                  <Text style={styles.roomMetaText}>⏱️ {room.duration} • {room.date}</Text>
+                  <Text style={styles.roomMetaText}>⏱️ {formatDuration(room.duration_seconds || (room.duration ? parseInt(room.duration) * 60 : 0))} • {new Date(room.created_at || room.date).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' })}</Text>
                   <Text style={styles.roomDispatchText}>Key sent via SMS</Text>
                 </View>
               </View>

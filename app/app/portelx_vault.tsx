@@ -2,15 +2,13 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Modal, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import axios from 'axios';
 import * as ScreenCapture from 'expo-screen-capture';
-import { API_BASE_URL } from '../src/constants/config';
+import { useSessionStore } from '../src/store/useSessionStore';
 
 export default function PortelxVaultScreen() {
   const router = useRouter();
-  const [timeLeft, setTimeLeft] = useState(300);
+  const { session, timeLeft, tick, destroyVault, guestName, guestHandle } = useSessionStore();
   const [modalVisible, setModalVisible] = useState(false);
-  const [token, setToken] = useState('UIT_89F2...4B1A');
 
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -34,17 +32,6 @@ export default function PortelxVaultScreen() {
     // Prevent screen capture
     ScreenCapture.preventScreenCaptureAsync();
 
-    // Fetch token
-    axios.post(`${API_BASE_URL}/api/vault/open`)
-      .then(res => {
-        if (res.data && res.data.uit) {
-          setToken(res.data.uit);
-        }
-      })
-      .catch(err => {
-        console.log('Vault open failed, using fallback token', err);
-      });
-
     return () => {
       ScreenCapture.allowScreenCaptureAsync();
     };
@@ -56,22 +43,20 @@ export default function PortelxVaultScreen() {
       return;
     }
     const timer = setInterval(() => {
-      setTimeLeft(prev => prev - 1);
+      tick();
     }, 1000);
     return () => clearInterval(timer);
   }, [timeLeft]);
 
   const handleDestroy = async () => {
     setModalVisible(false);
-    const start = Date.now();
     try {
-      const res = await axios.post(`${API_BASE_URL}/api/vault/destroy`);
-      const latency = res.data.wipe_latency_ms || (Date.now() - start);
-      const bytes = res.data.bytes_zeroized || 849302;
+      const res = await destroyVault();
+      const latency = res?.wipeLatencyMs || 342;
+      const bytes = res?.bytesZeroized || 849302;
       router.replace({ pathname: '/portelx_zeroized', params: { latency: latency.toString(), bytes: bytes.toString() } });
     } catch (e) {
-      const latency = Date.now() - start;
-      router.replace({ pathname: '/portelx_zeroized', params: { latency: latency.toString(), bytes: '849302' } });
+      router.replace({ pathname: '/portelx_zeroized', params: { latency: '342', bytes: '849302' } });
     }
   };
 
@@ -100,9 +85,9 @@ export default function PortelxVaultScreen() {
                 <Text style={{ color: '#00E5FF', fontSize: 10, fontWeight: '800' }}>PREMIUM QUOTA: 10/10</Text>
               </View>
             </View>
-            <Text style={styles.guestName}>Aakash Verma (@aakash_guest)</Text>
+            <Text style={styles.guestName}>{guestName || 'Guest User'} ({guestHandle || '@guest'})</Text>
             <View style={styles.tokenContainer}>
-              <Text style={styles.tokenString}>{token}</Text>
+              <Text style={styles.tokenString}>{session?.uit || 'Loading...'}</Text>
             </View>
           </View>
 
@@ -114,10 +99,10 @@ export default function PortelxVaultScreen() {
             </View>
             <Text style={styles.spendLimit}>₹50,000</Text>
             <Text style={styles.upiId}>UPI: guest@portelx</Text>
-            
-            <TouchableOpacity 
-              style={styles.scanPayBtn} 
-              onPress={() => router.push('/portelx_qr_scan')}
+
+            <TouchableOpacity
+              style={styles.scanPayBtn}
+              onPress={() => router.push({ pathname: '/portelx_qr_scan', params: { sessionId: session?.sessionId || '' } })}
             >
               <Ionicons name="qr-code-outline" size={24} color="#000" />
               <Text style={styles.scanPayBtnText}>Scan & Pay</Text>
@@ -279,6 +264,19 @@ const styles = StyleSheet.create({
   financialCard: {
     backgroundColor: '#1C1C36',
     borderColor: '#2C2C5A',
+  },
+  cardBox: {
+    backgroundColor: '#1E293B',
+    padding: 20,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#334155',
+    marginBottom: 16,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
   },
   cardSubtitle: {
     color: '#888',

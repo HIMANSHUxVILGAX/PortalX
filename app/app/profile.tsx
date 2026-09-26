@@ -2,10 +2,15 @@ import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Animated, SafeAreaView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useAppStore } from '../src/store/useAppStore';
+import { useSessionStore } from '../src/store/useSessionStore';
 
 export default function ProfileScreen() {
   const router = useRouter();
   const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  const { user, subscription } = useAppStore();
+  const { session } = useSessionStore();
 
   useEffect(() => {
     Animated.timing(fadeAnim, {
@@ -14,6 +19,10 @@ export default function ProfileScreen() {
       useNativeDriver: true,
     }).start();
   }, []);
+
+  const initials = user?.displayName
+    ? user.displayName.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()
+    : 'RS';
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -33,10 +42,10 @@ export default function ProfileScreen() {
           <View style={styles.profileCard}>
             <View style={styles.avatarContainer}>
               <View style={styles.avatarPlaceholder}>
-                <Text style={styles.avatarInitials}>RS</Text>
+                <Text style={styles.avatarInitials}>{initials}</Text>
               </View>
             </View>
-            <Text style={styles.profileName}>Rahul Sharma</Text>
+            <Text style={styles.profileName}>{user?.displayName || 'Rahul Sharma'}</Text>
             <View style={styles.verificationBadge}>
               <MaterialCommunityIcons name="check-decagram" size={16} color="#34C759" />
               <Text style={styles.subtitleText}>Primary Device • Full KYC Verified</Text>
@@ -46,38 +55,46 @@ export default function ProfileScreen() {
           {/* Subscription Section */}
           <View style={styles.sectionContainer}>
             <Text style={styles.sectionTitle}>PORTELX SUBSCRIPTION</Text>
-            <View style={styles.planCard}>
-              <View style={styles.planHeaderRow}>
-                <View style={styles.planTitleContainer}>
-                  <MaterialCommunityIcons name="star-circle" size={24} color="#F5C518" />
-                  <Text style={styles.planName}>PortelX Premium</Text>
+            <TouchableOpacity activeOpacity={0.8} onPress={() => router.push('/subscription')}>
+              <View style={styles.planCard}>
+                <View style={styles.planHeaderRow}>
+                  <View style={styles.planTitleContainer}>
+                    <MaterialCommunityIcons name="star-circle" size={24} color="#F5C518" />
+                    <Text style={styles.planName}>
+                      {subscription?.tier === 'premium' ? 'PortelX Premium' : subscription?.tier === 'bundle' ? 'PortelX Bundle' : 'PortelX Free'}
+                    </Text>
+                  </View>
+                  <View style={styles.activeBadge}>
+                    <Text style={styles.activeBadgeText}>ACTIVE</Text>
+                  </View>
                 </View>
-                <View style={styles.activeBadge}>
-                  <Text style={styles.activeBadgeText}>ACTIVE</Text>
+                <Text style={styles.planPrice}>
+                  {subscription?.tier === 'premium' ? '₹499/month' : subscription?.tier === 'bundle' ? '₹999/month' : 'Free'}
+                </Text>
+                <Text style={styles.planFeature}>
+                  ✓ {subscription?.tier !== 'free' ? 'Unlimited Guest Vaults' : '3 Guest Vaults/month'}
+                </Text>
+
+                <View style={styles.divider} />
+
+                <View style={styles.statsRow}>
+                  <View style={styles.statItem}>
+                    <Text style={styles.statValue}>{subscription?.sessionsUsed || 0}</Text>
+                    <Text style={styles.statLabel}>Vaults Created</Text>
+                  </View>
+                  <View style={styles.statDivider} />
+                  <View style={styles.statItem}>
+                    <Text style={styles.statValue}>{session ? '1' : '0'}</Text>
+                    <Text style={styles.statLabel}>Active Now</Text>
+                  </View>
+                  <View style={styles.statDivider} />
+                  <View style={styles.statItem}>
+                    <Text style={styles.statValue}>100%</Text>
+                    <Text style={styles.statLabel}>Shredded</Text>
+                  </View>
                 </View>
               </View>
-              <Text style={styles.planPrice}>₹499/month</Text>
-              <Text style={styles.planFeature}>✓ Unlimited Guest Vaults</Text>
-
-              <View style={styles.divider} />
-
-              <View style={styles.statsRow}>
-                <View style={styles.statItem}>
-                  <Text style={styles.statValue}>12</Text>
-                  <Text style={styles.statLabel}>Vaults Created</Text>
-                </View>
-                <View style={styles.statDivider} />
-                <View style={styles.statItem}>
-                  <Text style={styles.statValue}>0</Text>
-                  <Text style={styles.statLabel}>Active Now</Text>
-                </View>
-                <View style={styles.statDivider} />
-                <View style={styles.statItem}>
-                  <Text style={styles.statValue}>100%</Text>
-                  <Text style={styles.statLabel}>Shredded</Text>
-                </View>
-              </View>
-            </View>
+            </TouchableOpacity>
           </View>
 
           {/* Guest Mode Banner */}

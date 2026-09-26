@@ -13,21 +13,25 @@ import {
   StatusBar,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useAppStore } from '../src/store/useAppStore';
 
 const { width } = Dimensions.get('window');
 
-const CRYPTO_DATA = [
-  { id: '1', name: 'Bitcoin', symbol: 'BTC', price: '₹56,23,100', balance: '0.15 BTC', fiatValue: '₹8,43,465', change: '+2.4%', isPositive: true, icon: 'bitcoin' },
-  { id: '2', name: 'Ethereum', symbol: 'ETH', price: '₹2,15,400', balance: '1.42 ETH', fiatValue: '₹3,05,868', change: '+5.1%', isPositive: true, icon: 'ethereum' },
-  { id: '3', name: 'Solana', symbol: 'SOL', price: '₹12,850', balance: '7.45 SOL', fiatValue: '₹95,732', change: '+11.8%', isPositive: true, icon: 'flash' },
-  { id: '4', name: 'Tether USD', symbol: 'USDT', price: '₹83.50', balance: '1450 USDT', fiatValue: '₹1,21,075', change: '0.0%', isPositive: null, icon: 'currency-usd' },
-];
+const formatINR = (amount: number): string => {
+  const abs = Math.abs(amount);
+  const formatted = abs >= 100000
+    ? `${(abs / 100000).toFixed(abs % 100000 === 0 ? 0 : 2)}L`
+    : abs.toLocaleString('en-IN');
+  return amount < 0 ? `-₹${formatted}` : `₹${formatted}`;
+};
 
 export default function CryptoPortfolioScreen() {
   const router = useRouter();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(40)).current;
+
+  const { wallets, totalCryptoBalance, user } = useAppStore();
 
   // Modals state
   const [showBuyModal, setShowBuyModal] = useState(false);
@@ -104,7 +108,7 @@ export default function CryptoPortfolioScreen() {
             <View style={styles.portfolioTop}>
               <View>
                 <Text style={styles.portfolioLabel}>TOTAL WEB3 PORTFOLIO</Text>
-                <Text style={styles.portfolioAmount}>₹13,66,140.00</Text>
+                <Text style={styles.portfolioAmount}>{formatINR(totalCryptoBalance())}</Text>
               </View>
               <View style={styles.changeBadge}>
                 <Ionicons name="caret-up" size={14} color="#10B981" />
@@ -115,7 +119,7 @@ export default function CryptoPortfolioScreen() {
             {/* Quick linked wallet banner */}
             <View style={styles.linkedAddressBar}>
               <Ionicons name="key-outline" size={14} color="#00E5FF" style={{ marginRight: 6 }} />
-              <Text style={styles.linkedAddressText}>Vault Public Address: 0x71C...3E4A</Text>
+              <Text style={styles.linkedAddressText}>Vault Public Address: {wallets[0]?.displayAddress || '0x...'}</Text>
               <Text style={styles.alchemySync}>Alchemy Live</Text>
             </View>
           </View>
@@ -162,14 +166,14 @@ export default function CryptoPortfolioScreen() {
           </View>
 
           <View style={styles.assetsList}>
-            {CRYPTO_DATA.map((coin) => (
+            {wallets.map((coin) => (
               <View key={coin.id} style={styles.coinCard}>
                 <View style={styles.coinLeft}>
                   <View style={styles.coinIconWrapper}>
-                    <MaterialCommunityIcons name={coin.icon as any} size={24} color="#00E5FF" />
+                    <MaterialCommunityIcons name="currency-usd" size={24} color="#00E5FF" />
                   </View>
                   <View>
-                    <Text style={styles.coinName}>{coin.name}</Text>
+                    <Text style={styles.coinName}>{coin.chain}</Text>
                     <Text style={styles.coinSymbol}>{coin.symbol} • {coin.balance}</Text>
                   </View>
                 </View>
@@ -177,21 +181,14 @@ export default function CryptoPortfolioScreen() {
                 <View style={styles.coinRight}>
                   <Text style={styles.coinPrice}>{coin.fiatValue}</Text>
                   <View style={styles.coinChangeRow}>
-                    <Text style={styles.coinRateText}>1 = {coin.price}</Text>
+                    <Text style={styles.coinRateText}>1 = ₹...</Text>
                     <Text
                       style={[
                         styles.coinChange,
-                        {
-                          color:
-                            coin.isPositive === true
-                              ? '#10B981'
-                              : coin.isPositive === null
-                              ? '#94A3B8'
-                              : '#EF4444',
-                        },
+                        { color: '#10B981' }
                       ]}
                     >
-                      {coin.change}
+                      +0.0%
                     </Text>
                   </View>
                 </View>
@@ -334,8 +331,8 @@ export default function CryptoPortfolioScreen() {
                 <View style={styles.upiChoiceCard}>
                   <Ionicons name="flash" size={20} color="#00E5FF" />
                   <View style={{ flex: 1, marginLeft: 10 }}>
-                    <Text style={styles.upiChoiceTitle}>Primary UPI: rahul@portelx</Text>
-                    <Text style={styles.upiChoiceSub}>Linked to HDFC Bank ••4521</Text>
+                    <Text style={styles.upiChoiceTitle}>Primary UPI: {user?.upiId || 'rahul@portelx'}</Text>
+                    <Text style={styles.upiChoiceSub}>Linked to App Account</Text>
                   </View>
                   <Ionicons name="checkmark-circle" size={20} color="#10B981" />
                 </View>
