@@ -333,7 +333,7 @@ async def vault_pay(req: PayRequest, db: Session = Depends(get_db)):
 
     logger.info(f"[SUCCESS] Payment SUCCESSFUL: Saved to SQLite Database.")
 
-    return JSONResponse({"status": "success", "message": f"Paid ₹{req.amount} securely."})
+    return JSONResponse({"status": "success", "message": f"Paid Rs. {req.amount:,.2f} securely."})
 
 @app.post("/api/vault/destroy")
 async def vault_destroy(req: VaultDestroyRequest):
@@ -370,6 +370,7 @@ async def active_sessions():
         ]
     })
 
+
 @app.post("/api/vault/verify-token")
 async def verify_token(req: VerifyTokenRequest):
     if req.session_id not in SESSIONS:
@@ -391,6 +392,9 @@ async def verify_token(req: VerifyTokenRequest):
         return JSONResponse({"status": "success", "valid": True})
     else:
         return JSONResponse({"status": "error", "valid": False}, status_code=401)
+
+class TerminateRequest(BaseModel):
+    reason: str
 
 @app.post("/api/v1/sessions/test/terminate")
 async def terminate_test_session(req: TerminateRequest):

@@ -83,7 +83,7 @@ export default function Home() {
   const quickActions = [
     { icon: 'qr-code-outline', label: 'Scan & Pay', color: '#2563EB', action: () => router.push('/portelx_qr_scan') },
     { icon: 'send-outline', label: 'Send Money', color: '#10B981', action: () => router.push('/manage_cards') },
-    { icon: 'wallet-outline', label: 'Buy Crypto', color: '#F59E0B', action: () => router.push('/portelx_vault') },
+    { icon: 'wallet-outline', label: 'Buy Crypto', color: '#F59E0B', action: () => router.push('/crypto_portfolio') },
     { icon: 'card-outline', label: 'All Cards', color: '#8B5CF6', action: () => router.push('/manage_cards') },
   ];
 
@@ -547,7 +547,7 @@ export default function Home() {
           <Ionicons name="home" size={24} color="#00E5FF" />
           <Text style={[styles.tabLabel, { color: '#00E5FF' }]}>Super Wallet</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.tabItem} onPress={() => router.push('/portelx_vault')}>
+        <TouchableOpacity style={styles.tabItem} onPress={() => router.push('/crypto_portfolio')}>
           <Ionicons name="logo-bitcoin" size={24} color="#94A3B8" />
           <Text style={[styles.tabLabel, { color: theme.subText }]}>Web3</Text>
         </TouchableOpacity>

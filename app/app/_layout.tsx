@@ -14,7 +14,6 @@ export default function RootLayout() {
       <Stack.Screen name="manage_cards" />
       <Stack.Screen name="portelx_zeroized" />
       <Stack.Screen name="trusted_circle" />
-      <Stack.Screen name="passwords_otp" />
       <Stack.Screen name="passwords_vault" />
     </Stack>
   );

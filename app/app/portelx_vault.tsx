@@ -8,7 +8,7 @@ import { API_BASE_URL } from '../src/constants/config';
 
 export default function PortelxVaultScreen() {
   const router = useRouter();
-  const { session, timeLeft, tick, destroyVault, guestName, guestHandle } = useSessionStore();
+  const { session, timeLeft, tick, destroyVault, openVault, guestName, guestHandle } = useSessionStore();
   const [modalVisible, setModalVisible] = useState(false);
 
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -94,6 +94,13 @@ export default function PortelxVaultScreen() {
   }, [session?.sessionId]);
 
   useEffect(() => {
+    if (!session) {
+      openVault('@guest', '1234');
+    }
+  }, [session]);
+
+  useEffect(() => {
+    if (!session) return;
     if (timeLeft <= 0) {
       handleDestroy();
       return;
@@ -102,7 +109,7 @@ export default function PortelxVaultScreen() {
       tick();
     }, 1000);
     return () => clearInterval(timer);
-  }, [timeLeft]);
+  }, [session, timeLeft]);
 
   const minutes = Math.floor(timeLeft / 60).toString().padStart(2, '0');
   const seconds = (timeLeft % 60).toString().padStart(2, '0');
