@@ -11,6 +11,7 @@ import {
 import { useRouter } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
 import { useSessionStore } from '../src/store/useSessionStore';
+import { API_BASE_URL } from '../src/constants/config';
 
 export default function PortelXDashboard() {
   const router = useRouter();
@@ -103,6 +104,19 @@ export default function PortelXDashboard() {
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
     return `${m}m ${s}s`;
+  };
+
+  const handlePanicRevoke = async (roomId: string) => {
+    try {
+      await fetch(API_BASE_URL + '/api/vault/remote-kill', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: roomId }),
+      });
+      fetchHistory();
+    } catch (error) {
+      console.error('Failed to revoke vault:', error);
+    }
   };
 
   return (
@@ -251,16 +265,29 @@ export default function PortelXDashboard() {
           </Text>
 
           <View style={styles.roomsList}>
-            {rooms.map((room, index) => (
+            {rooms.map((room, index) => {
+              const isActive = room.is_active || room.status === 'active' || room.status === 'ACTIVE';
+
+              return (
               <View key={index} style={styles.roomItem}>
                 <View style={styles.roomItemTop}>
                   <View style={styles.roomIdBox}>
                     <Text style={styles.roomIdText}>{room.room_id}</Text>
                   </View>
-                  <View style={styles.shreddedBadge}>
-                    <Ionicons name="trash-bin" size={12} color="#10B981" style={{ marginRight: 4 }} />
-                    <Text style={styles.shreddedText}>{room.status} • 0x00</Text>
-                  </View>
+                  {isActive ? (
+                    <TouchableOpacity 
+                      style={styles.panicBtn}
+                      onPress={() => handlePanicRevoke(room.session_id || room.room_id)}
+                    >
+                      <Ionicons name="warning" size={12} color="#FFF" style={{ marginRight: 4 }} />
+                      <Text style={styles.panicBtnText}>PANIC REVOKE (KILL)</Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <View style={styles.shreddedBadge}>
+                      <Ionicons name="trash-bin" size={12} color="#10B981" style={{ marginRight: 4 }} />
+                      <Text style={styles.shreddedText}>{room.status} • 0x00</Text>
+                    </View>
+                  )}
                 </View>
 
                 <View style={styles.roomDetailRow}>
@@ -278,7 +305,7 @@ export default function PortelXDashboard() {
                   <Text style={styles.roomDispatchText}>Key sent via SMS</Text>
                 </View>
               </View>
-            ))}
+            )})}
           </View>
         </View>
       </Animated.ScrollView>
@@ -571,6 +598,19 @@ const styles = StyleSheet.create({
   },
   shreddedText: {
     color: '#10B981',
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  panicBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EF4444',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  panicBtnText: {
+    color: '#FFF',
     fontSize: 10,
     fontWeight: '800',
   },

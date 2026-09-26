@@ -29,18 +29,18 @@ const formatINR = (amount: number): string => {
 export default function Home() {
   const router = useRouter();
 
-  const { 
-    user, 
-    isDarkMode, 
-    toggleTheme, 
-    cards, 
-    wallets, 
-    addWallet, 
-    transactions, 
-    documents, 
-    totalFiatBalance, 
-    totalCryptoBalance, 
-    totalNetWorth 
+  const {
+    user,
+    isDarkMode,
+    toggleTheme,
+    cards,
+    wallets,
+    addWallet,
+    transactions,
+    documents,
+    totalFiatBalance,
+    totalCryptoBalance,
+    totalNetWorth
   } = useAppStore();
 
   // 2. Transaction Filter State ('all' | 'received' | 'sent' | 'crypto')
@@ -99,8 +99,8 @@ export default function Home() {
         id: `w_${Date.now()}`,
         name: `${selectedChain} Imported Wallet`,
         address: walletAddressInput,
-        displayAddress: walletAddressInput.length > 12 
-          ? `${walletAddressInput.slice(0, 6)}...${walletAddressInput.slice(-4)}` 
+        displayAddress: walletAddressInput.length > 12
+          ? `${walletAddressInput.slice(0, 6)}...${walletAddressInput.slice(-4)}`
           : walletAddressInput,
         chain: selectedChain,
         balance: 50000,
@@ -410,8 +410,8 @@ export default function Home() {
                           tx.type === 'received'
                             ? 'rgba(16, 185, 129, 0.12)'
                             : tx.type === 'crypto'
-                            ? 'rgba(245, 158, 11, 0.12)'
-                            : 'rgba(239, 68, 68, 0.12)',
+                              ? 'rgba(245, 158, 11, 0.12)'
+                              : 'rgba(239, 68, 68, 0.12)',
                       },
                     ]}
                   >

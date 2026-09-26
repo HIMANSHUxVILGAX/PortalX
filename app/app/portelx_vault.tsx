@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as ScreenCapture from 'expo-screen-capture';
 import { useSessionStore } from '../src/store/useSessionStore';
+import { API_BASE_URL } from '../src/constants/config';
 
 export default function PortelxVaultScreen() {
   const router = useRouter();
@@ -13,6 +14,7 @@ export default function PortelxVaultScreen() {
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
+  const wsPulseAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     // Pulse animation
@@ -20,6 +22,14 @@ export default function PortelxVaultScreen() {
       Animated.sequence([
         Animated.timing(pulseAnim, { toValue: 0.3, duration: 800, useNativeDriver: true }),
         Animated.timing(pulseAnim, { toValue: 1, duration: 800, useNativeDriver: true })
+      ])
+    ).start();
+
+    // WS Pulse animation
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(wsPulseAnim, { toValue: 0.3, duration: 800, useNativeDriver: true }),
+        Animated.timing(wsPulseAnim, { toValue: 1, duration: 800, useNativeDriver: true })
       ])
     ).start();
 
@@ -37,17 +47,6 @@ export default function PortelxVaultScreen() {
     };
   }, []);
 
-  useEffect(() => {
-    if (timeLeft <= 0) {
-      handleDestroy();
-      return;
-    }
-    const timer = setInterval(() => {
-      tick();
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [timeLeft]);
-
   const handleDestroy = async () => {
     setModalVisible(false);
     try {
@@ -60,6 +59,51 @@ export default function PortelxVaultScreen() {
     }
   };
 
+  useEffect(() => {
+    if (!session?.sessionId) return;
+    
+    const wsUrl = API_BASE_URL.replace(/^http/, 'ws') + '/api/vault/ws/' + session.sessionId;
+    const ws = new WebSocket(wsUrl);
+    
+    let pingInterval: ReturnType<typeof setInterval>;
+    
+    ws.onopen = () => {
+      console.log('WS connected:', wsUrl);
+      pingInterval = setInterval(() => {
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send('ping');
+        }
+      }, 3000);
+    };
+    
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.action === 'KILL') {
+          handleDestroy();
+        }
+      } catch (e) {
+        // ignore parse error
+      }
+    };
+    
+    return () => {
+      if (pingInterval) clearInterval(pingInterval);
+      ws.close();
+    };
+  }, [session?.sessionId]);
+
+  useEffect(() => {
+    if (timeLeft <= 0) {
+      handleDestroy();
+      return;
+    }
+    const timer = setInterval(() => {
+      tick();
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [timeLeft]);
+
   const minutes = Math.floor(timeLeft / 60).toString().padStart(2, '0');
   const seconds = (timeLeft % 60).toString().padStart(2, '0');
 
@@ -70,6 +114,12 @@ export default function PortelxVaultScreen() {
         <View style={styles.headerLeft}>
           <Animated.View style={[styles.pulseDot, { opacity: pulseAnim }]} />
           <Text style={styles.headerTitle}>GUEST VAULT ACTIVE</Text>
+
+          {/* New Live Heartbeat Indicator */}
+          <View style={styles.wsSyncContainer}>
+            <Animated.View style={[styles.wsPulseDot, { opacity: wsPulseAnim }]} />
+            <Text style={styles.wsSyncText}>WS SYNC</Text>
+          </View>
         </View>
         <Text style={styles.timerText}>{minutes}:{seconds}</Text>
       </View>
@@ -226,6 +276,7 @@ const styles = StyleSheet.create({
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'wrap',
   },
   pulseDot: {
     width: 10,
@@ -239,6 +290,27 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     letterSpacing: 1,
+  },
+  wsSyncContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: 12,
+    backgroundColor: '#0F291E',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  wsPulseDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#00FF41',
+    marginRight: 4,
+  },
+  wsSyncText: {
+    color: '#00FF41',
+    fontSize: 10,
+    fontWeight: '700',
   },
   timerText: {
     color: '#fff',

@@ -142,6 +142,16 @@ export default function ProfileScreen() {
 
               <View style={styles.settingDivider} />
 
+              <TouchableOpacity style={styles.settingRow} onPress={() => router.push('/trusted_circle')}>
+                <View style={styles.settingIconContainer}>
+                  <Ionicons name="people-outline" size={22} color="#000" />
+                </View>
+                <Text style={styles.settingLabel}>Trusted Circle (P2P)</Text>
+                <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />
+              </TouchableOpacity>
+
+              <View style={styles.settingDivider} />
+
               <TouchableOpacity style={styles.settingRow}>
                 <View style={styles.settingIconContainer}>
                   <MaterialCommunityIcons name="bell-outline" size={22} color="#000" />

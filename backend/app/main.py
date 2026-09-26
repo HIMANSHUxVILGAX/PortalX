@@ -7,7 +7,7 @@ import logging
 import datetime
 from typing import Dict, Any, Optional
 
-from fastapi import FastAPI, Depends, Request
+from fastapi import FastAPI, Depends, Request, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -44,11 +44,55 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-class TerminateRequest(BaseModel):
-    reason: str
+# ----------------- WebSocket Manager -----------------
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: Dict[str, WebSocket] = {}
+
+    async def connect(self, websocket: WebSocket, session_id: str):
+        await websocket.accept()
+        self.active_connections[session_id] = websocket
+        logger.info(f"WS Connected: {session_id}")
+
+    def disconnect(self, session_id: str):
+        if session_id in self.active_connections:
+            del self.active_connections[session_id]
+            logger.info(f"WS Disconnected: {session_id}")
+
+    async def kill_vault(self, session_id: str):
+        if session_id in self.active_connections:
+            websocket = self.active_connections[session_id]
+            try:
+                await websocket.send_json({"action": "KILL", "reason": "Host revoked vault access."})
+                logger.info(f"WS KILL signal sent to: {session_id}")
+            except Exception as e:
+                logger.error(f"WS Send Error on kill: {e}")
+
+manager = ConnectionManager()
 
 # ----------------- Session Store -----------------
 SESSIONS: Dict[str, Dict[str, Any]] = {}
+
+# ----------------- Progressive Lockout Engine -----------------
+FAILED_ATTEMPTS: Dict[str, dict] = {}
+
+def check_lockout(device_id: str):
+    if device_id in FAILED_ATTEMPTS:
+        data = FAILED_ATTEMPTS[device_id]
+        if data['count'] >= 3:
+            time_passed = time.time() - data['last_attempt']
+            if time_passed < 300:
+                raise HTTPException(status_code=429, detail=f"Too many failed attempts. Locked for {int(300 - time_passed)}s")
+            else:
+                FAILED_ATTEMPTS.pop(device_id)
+
+def record_failed_attempt(device_id: str):
+    if device_id not in FAILED_ATTEMPTS:
+        FAILED_ATTEMPTS[device_id] = {'count': 1, 'last_attempt': time.time()}
+    else:
+        FAILED_ATTEMPTS[device_id]['count'] += 1
+        FAILED_ATTEMPTS[device_id]['last_attempt'] = time.time()
+
 
 async def _auto_destroy_session(session_id: str, delay: int):
     await asyncio.sleep(delay)
@@ -68,8 +112,32 @@ class VerifyTokenRequest(BaseModel):
     uit: str
     session_id: str
 
-# ----------------- API Routes -----------------
+# ----------------- WebSocket Routes -----------------
+@app.websocket("/api/vault/ws/{session_id}")
+async def vault_websocket(websocket: WebSocket, session_id: str):
+    await manager.connect(websocket, session_id)
+    try:
+        while True:
+            # Heartbeat ping
+            data = await websocket.receive_text()
+            if data == "ping":
+                await websocket.send_text("pong")
+    except WebSocketDisconnect:
+        manager.disconnect(session_id)
 
+class RemoteKillRequest(BaseModel):
+    session_id: str
+
+@app.post("/api/vault/remote-kill")
+async def remote_kill(req: RemoteKillRequest):
+    if req.session_id not in SESSIONS:
+        return JSONResponse({"status": "error", "message": "Session not found"}, status_code=404)
+    
+    # Broadcast KILL signal to the active WebSocket client
+    await manager.kill_vault(req.session_id)
+    return {"status": "success", "message": "KILL signal broadcasted to vault"}
+
+# ----------------- API Routes -----------------
 class RiskScoreRequest(BaseModel):
     handle: str
     device_id: str

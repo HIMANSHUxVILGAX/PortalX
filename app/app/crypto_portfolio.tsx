@@ -102,7 +102,7 @@ export default function CryptoPortfolioScreen() {
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
-          
+
           {/* MAIN PORTFOLIO CARD */}
           <View style={styles.portfolioCard}>
             <View style={styles.portfolioTop}>

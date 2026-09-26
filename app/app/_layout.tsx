@@ -13,6 +13,7 @@ export default function RootLayout() {
       <Stack.Screen name="crypto_portfolio" />
       <Stack.Screen name="manage_cards" />
       <Stack.Screen name="portelx_zeroized" />
+      <Stack.Screen name="trusted_circle" />
     </Stack>
   );
 }
