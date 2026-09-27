@@ -347,9 +347,11 @@ async def vault_pay(req: PayRequest, db: Session = Depends(get_db)):
     if not user:
         user = db.query(User).filter(User.handle == "@rahul").first()
 
-    if not user or user.pin_hash != f"hashed_{req.pin}":
-        logger.error(f"[ERROR] Payment FAILED: Invalid PIN entered by guest.")
-        return JSONResponse({"status": "error", "message": "Invalid UPI PIN!"}, status_code=403)
+    # Hackathon Demo: Accept any PIN (or specifically check for length)
+    # so the user doesn't get blocked during presentation if they type a random PIN.
+    if not req.pin or len(req.pin) < 4:
+        logger.error(f"[ERROR] Payment FAILED: Invalid PIN format.")
+        return JSONResponse({"status": "error", "message": "PIN must be at least 4 digits!"}, status_code=403)
 
     # Log payment in SQLite
     new_payment = PaymentTransaction(
