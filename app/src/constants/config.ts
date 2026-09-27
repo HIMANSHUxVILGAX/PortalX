@@ -1,11 +1,13 @@
-/**
- * PortelX — App Configuration Constants
- */
+import Constants from 'expo-constants';
+
+// Dynamically extract host IP from Expo Metro server so Wi-Fi changes never break connection
+const debuggerHost = Constants.expoConfig?.hostUri;
+const hostIp = debuggerHost ? debuggerHost.split(':')[0] : '192.168.72.44';
 
 // Backend API base URL
 export const API_BASE_URL = __DEV__
-  ? 'http://192.168.75.44:8000'     // Android / iOS device → host machine
-  : 'https://api.portelx.app';  // Production
+  ? `http://${hostIp}:8001`
+  : 'https://api.portelx.app';
 
 // Session Defaults
 export const DEFAULT_SESSION_TTL = 300;      // 5 minutes

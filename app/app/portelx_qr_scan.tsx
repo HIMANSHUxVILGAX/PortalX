@@ -16,6 +16,8 @@ export default function PortelxQRScanScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
   const [paymentData, setPaymentData] = useState<any>(null);
+  const [pin, setPin] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const scanLineAnim = React.useRef(new Animated.Value(0)).current;
 
@@ -57,9 +59,6 @@ export default function PortelxQRScanScreen() {
       </View>
     );
   }
-
-  const [pin, setPin] = useState('');
-  const [isProcessing, setIsProcessing] = useState(false);
 
   const handleBarcodeScanned = ({ type, data }: { type: string; data: string }) => {
     if (scanned) return;

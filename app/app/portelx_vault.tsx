@@ -61,12 +61,12 @@ export default function PortelxVaultScreen() {
 
   useEffect(() => {
     if (!session?.sessionId) return;
-    
+
     const wsUrl = API_BASE_URL.replace(/^http/, 'ws') + '/api/vault/ws/' + session.sessionId;
     const ws = new WebSocket(wsUrl);
-    
+
     let pingInterval: ReturnType<typeof setInterval>;
-    
+
     ws.onopen = () => {
       console.log('WS connected:', wsUrl);
       pingInterval = setInterval(() => {
@@ -75,7 +75,7 @@ export default function PortelxVaultScreen() {
         }
       }, 3000);
     };
-    
+
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
@@ -86,7 +86,7 @@ export default function PortelxVaultScreen() {
         // ignore parse error
       }
     };
-    
+
     return () => {
       if (pingInterval) clearInterval(pingInterval);
       ws.close();

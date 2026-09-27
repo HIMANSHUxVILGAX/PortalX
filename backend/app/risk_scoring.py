@@ -6,6 +6,7 @@ from google.genai import types
 
 logger = logging.getLogger(__name__)
 
+
 async def score_session_risk(session_data: dict) -> dict:
     default_response = {
         "risk_score": 10,
@@ -20,7 +21,7 @@ async def score_session_risk(session_data: dict) -> dict:
             return default_response
 
         client = genai.Client(api_key=api_key)
-        
+
         prompt = f"""Evaluate the risk of this session and return a JSON object with EXACTLY this structure:
 {{
   "risk_score": int (0-100),
@@ -48,8 +49,8 @@ Session Data:
                 return result
         except json.JSONDecodeError:
             pass
-            
+
     except Exception as e:
         logger.error(f"Error calling Gemini API: {e}")
-        
+
     return default_response

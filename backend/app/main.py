@@ -1,3 +1,5 @@
+from crypto_core.zeroize import zeroize_buffer
+from crypto_core.uit import generate_uit, verify_uit
 import os
 import sys
 import time
@@ -25,8 +27,6 @@ CRYPTO_CORE_DIR = os.path.join(ROOT_DIR, "packages", "crypto-core")
 if CRYPTO_CORE_DIR not in sys.path:
     sys.path.insert(0, CRYPTO_CORE_DIR)
 
-from crypto_core.uit import generate_uit, verify_uit
-from crypto_core.zeroize import zeroize_buffer
 
 logger = logging.getLogger('portelx')
 logger.setLevel(logging.INFO)
@@ -45,6 +45,8 @@ app.add_middleware(
 )
 
 # ----------------- WebSocket Manager -----------------
+
+
 class ConnectionManager:
     def __init__(self):
         self.active_connections: Dict[str, WebSocket] = {}
@@ -68,6 +70,7 @@ class ConnectionManager:
             except Exception as e:
                 logger.error(f"WS Send Error on kill: {e}")
 
+
 manager = ConnectionManager()
 
 # ----------------- Session Store -----------------
@@ -76,15 +79,18 @@ SESSIONS: Dict[str, Dict[str, Any]] = {}
 # ----------------- Progressive Lockout Engine -----------------
 FAILED_ATTEMPTS: Dict[str, dict] = {}
 
+
 def check_lockout(device_id: str):
     if device_id in FAILED_ATTEMPTS:
         data = FAILED_ATTEMPTS[device_id]
         if data['count'] >= 3:
             time_passed = time.time() - data['last_attempt']
             if time_passed < 300:
-                raise HTTPException(status_code=429, detail=f"Too many failed attempts. Locked for {int(300 - time_passed)}s")
+                raise HTTPException(
+                    status_code=429, detail=f"Too many failed attempts. Locked for {int(300 - time_passed)}s")
             else:
                 FAILED_ATTEMPTS.pop(device_id)
+
 
 def record_failed_attempt(device_id: str):
     if device_id not in FAILED_ATTEMPTS:
@@ -101,18 +107,23 @@ async def _auto_destroy_session(session_id: str, delay: int):
         if "buffer" in session and session["buffer"]:
             zeroize_buffer(session["buffer"])
 
+
 class VaultOpenRequest(BaseModel):
     handle: str = "@user"
     pin: str = "1234"
 
+
 class VaultDestroyRequest(BaseModel):
     session_id: Optional[str] = None
+
 
 class VerifyTokenRequest(BaseModel):
     uit: str
     session_id: str
 
 # ----------------- WebSocket Routes -----------------
+
+
 @app.websocket("/api/vault/ws/{session_id}")
 async def vault_websocket(websocket: WebSocket, session_id: str):
     await manager.connect(websocket, session_id)
@@ -125,28 +136,34 @@ async def vault_websocket(websocket: WebSocket, session_id: str):
     except WebSocketDisconnect:
         manager.disconnect(session_id)
 
+
 class RemoteKillRequest(BaseModel):
     session_id: str
+
 
 @app.post("/api/vault/remote-kill")
 async def remote_kill(req: RemoteKillRequest):
     if req.session_id not in SESSIONS:
         return JSONResponse({"status": "error", "message": "Session not found"}, status_code=404)
-    
+
     # Broadcast KILL signal to the active WebSocket client
     await manager.kill_vault(req.session_id)
     return {"status": "success", "message": "KILL signal broadcasted to vault"}
 
 # ----------------- API Routes -----------------
+
+
 class RiskScoreRequest(BaseModel):
     handle: str
     device_id: str
     session_count_today: int
 
+
 @app.on_event('startup')
 def startup_event():
     init_db()
     logger.info("Database initialized.")
+
 
 def get_db():
     db = SessionLocal()
@@ -155,13 +172,15 @@ def get_db():
     finally:
         db.close()
 
+
 @app.get("/api/user/profile")
 async def get_user_profile(db: Session = Depends(get_db)):
     user = db.query(User).filter(User.handle == "@rahul").first()
     if not user:
         return JSONResponse({"status": "error", "message": "User not found"}, status_code=404)
-    
-    sub = db.query(SubscriptionTier).filter(SubscriptionTier.user_id == user.id).first()
+
+    sub = db.query(SubscriptionTier).filter(
+        SubscriptionTier.user_id == user.id).first()
     sub_data = None
     if sub:
         sub_data = {
@@ -172,7 +191,7 @@ async def get_user_profile(db: Session = Depends(get_db)):
             "sessions_used": sub.sessions_used,
             "is_active": sub.is_active
         }
-        
+
     return JSONResponse({
         "display_name": user.display_name,
         "handle": user.handle,
@@ -182,9 +201,11 @@ async def get_user_profile(db: Session = Depends(get_db)):
         "subscription": sub_data
     })
 
+
 @app.get("/api/vault/history")
 async def get_vault_history(db: Session = Depends(get_db)):
-    sessions = db.query(GuestSession).order_by(GuestSession.created_at.desc()).all()
+    sessions = db.query(GuestSession).order_by(
+        GuestSession.created_at.desc()).all()
     history = []
     for s in sessions:
         history.append({
@@ -195,9 +216,11 @@ async def get_vault_history(db: Session = Depends(get_db)):
         })
     return JSONResponse(history)
 
+
 @app.get("/api/transactions")
 async def get_transactions(db: Session = Depends(get_db)):
-    txs = db.query(PaymentTransaction).order_by(PaymentTransaction.timestamp.desc()).all()
+    txs = db.query(PaymentTransaction).order_by(
+        PaymentTransaction.timestamp.desc()).all()
     transactions = []
     for tx in txs:
         transactions.append({
@@ -211,6 +234,7 @@ async def get_transactions(db: Session = Depends(get_db)):
         })
     return JSONResponse(transactions)
 
+
 @app.post("/api/risk/score")
 async def evaluate_risk(req: RiskScoreRequest):
     session_data = {
@@ -222,17 +246,18 @@ async def evaluate_risk(req: RiskScoreRequest):
     risk_assessment = await score_session_risk(session_data)
     return JSONResponse(risk_assessment)
 
+
 @app.post("/api/vault/open")
 async def vault_open(req: VaultOpenRequest, db: Session = Depends(get_db)):
     user_seed = os.urandom(32)
     session_id = str(uuid.uuid4())
     ttl = 300
     host_device_id = "guest_mobile_device"
-    
+
     user = db.query(User).filter(User.handle == req.handle).first()
     if not user:
         user = db.query(User).filter(User.handle == "@rahul").first()
-        
+
     if user and user.pin_hash != f"hashed_{req.pin}":
         logger.warning(f"Invalid PIN attempt for {req.handle}")
         # Normally would fail here, but allowing to proceed as requested, or maybe we enforce it?
@@ -241,7 +266,8 @@ async def vault_open(req: VaultOpenRequest, db: Session = Depends(get_db)):
 
     # Generate the crypto UIT token
     session_data = generate_uit(user_seed, host_device_id, session_ttl=ttl)
-    sensitive_data = bytearray(b"CONFIDENTIAL_SESSION_DATA_AADHAAR_UPI_KEYS_" + os.urandom(64))
+    sensitive_data = bytearray(
+        b"CONFIDENTIAL_SESSION_DATA_AADHAAR_UPI_KEYS_" + os.urandom(64))
 
     # Store session in memory for zeroization
     SESSIONS[session_id] = {
@@ -270,7 +296,8 @@ async def vault_open(req: VaultOpenRequest, db: Session = Depends(get_db)):
         session_id=session_id,
         uit_token=session_data["uit"],
         user_id=user_id,
-        expires_at=datetime.datetime.fromtimestamp(session_data["expires_at"], tz=datetime.timezone.utc),
+        expires_at=datetime.datetime.fromtimestamp(
+            session_data["expires_at"], tz=datetime.timezone.utc),
         risk_score=risk_assessment.get("risk_score", 0.0)
     )
     db.add(new_session)
@@ -279,8 +306,10 @@ async def vault_open(req: VaultOpenRequest, db: Session = Depends(get_db)):
     logger.info(f"[PORTELX BACKEND] SECURE VAULT OPENED!")
     logger.info(f"-> Session ID  : {session_id}")
     logger.info(f"-> UIT Token   : {session_data['uit']}")
-    logger.info(f"-> Risk Score  : {risk_assessment.get('risk_score', 'N/A')}/10 ({risk_assessment.get('risk_level', 'UNKNOWN')})")
-    logger.info(f"-> Gemini Rec  : {risk_assessment.get('recommendation', '')}")
+    logger.info(
+        f"-> Risk Score  : {risk_assessment.get('risk_score', 'N/A')}/10 ({risk_assessment.get('risk_level', 'UNKNOWN')})")
+    logger.info(
+        f"-> Gemini Rec  : {risk_assessment.get('recommendation', '')}")
     logger.info(f"-> DB Status   : Session Saved to SQLite Database.")
 
     asyncio.create_task(_auto_destroy_session(session_id, ttl))
@@ -302,20 +331,22 @@ class PayRequest(BaseModel):
     merchant_name: str
     pin: str
 
+
 @app.post("/api/vault/pay")
 async def vault_pay(req: PayRequest, db: Session = Depends(get_db)):
     logger.info(f"[PORTELX BACKEND] INITIATING GUEST PAYMENT!")
     logger.info(f"-> Merchant : {req.merchant_name} ({req.vpa})")
     logger.info(f"-> Amount   : {req.amount}")
-    
+
     # Try to find the user from session or fallback to default
-    session_record = db.query(GuestSession).filter(GuestSession.session_id == req.session_id).first()
+    session_record = db.query(GuestSession).filter(
+        GuestSession.session_id == req.session_id).first()
     user = None
     if session_record:
         user = db.query(User).filter(User.id == session_record.user_id).first()
     if not user:
         user = db.query(User).filter(User.handle == "@rahul").first()
-        
+
     if not user or user.pin_hash != f"hashed_{req.pin}":
         logger.error(f"[ERROR] Payment FAILED: Invalid PIN entered by guest.")
         return JSONResponse({"status": "error", "message": "Invalid UPI PIN!"}, status_code=403)
@@ -334,6 +365,7 @@ async def vault_pay(req: PayRequest, db: Session = Depends(get_db)):
     logger.info(f"[SUCCESS] Payment SUCCESSFUL: Saved to SQLite Database.")
 
     return JSONResponse({"status": "success", "message": f"Paid Rs. {req.amount:,.2f} securely."})
+
 
 @app.post("/api/vault/destroy")
 async def vault_destroy(req: VaultDestroyRequest):
@@ -355,6 +387,7 @@ async def vault_destroy(req: VaultDestroyRequest):
         "wipe_latency_ms": round(wipe_latency_ms, 4),
         "bytes_zeroized": bytes_to_wipe,
     })
+
 
 @app.get("/api/sessions/active")
 async def active_sessions():
@@ -393,8 +426,10 @@ async def verify_token(req: VerifyTokenRequest):
     else:
         return JSONResponse({"status": "error", "valid": False}, status_code=401)
 
+
 class TerminateRequest(BaseModel):
     reason: str
+
 
 @app.post("/api/v1/sessions/test/terminate")
 async def terminate_test_session(req: TerminateRequest):
