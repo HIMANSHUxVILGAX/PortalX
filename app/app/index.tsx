@@ -40,7 +40,10 @@ export default function Home() {
     documents,
     totalFiatBalance,
     totalCryptoBalance,
-    totalNetWorth
+    totalNetWorth,
+    fetchCards,
+    fetchDocuments,
+    fetchTransactions
   } = useAppStore();
 
   // 2. Transaction Filter State ('all' | 'received' | 'sent' | 'crypto')
@@ -55,6 +58,10 @@ export default function Home() {
   const animValues = useRef([...Array(6)].map(() => new Animated.Value(0))).current;
 
   useEffect(() => {
+    fetchCards();
+    fetchDocuments();
+    fetchTransactions();
+
     Animated.stagger(
       100,
       animValues.map(anim =>

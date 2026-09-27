@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Animated, TextInput } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Animated, TextInput, Platform } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -23,7 +23,11 @@ export default function PortelxQRScanScreen() {
 
   useEffect(() => {
     // Zero-trace mode: No screenshots allowed in payment scanner
-    ScreenCapture.preventScreenCaptureAsync();
+    if (Platform.OS !== 'web') {
+      try {
+        ScreenCapture.preventScreenCaptureAsync();
+      } catch (e) { }
+    }
 
     Animated.loop(
       Animated.sequence([
@@ -41,7 +45,11 @@ export default function PortelxQRScanScreen() {
     ).start();
 
     return () => {
-      ScreenCapture.allowScreenCaptureAsync();
+      if (Platform.OS !== 'web') {
+        try {
+          ScreenCapture.allowScreenCaptureAsync();
+        } catch (e) { }
+      }
     };
   }, []);
 
@@ -176,6 +184,11 @@ export default function PortelxQRScanScreen() {
               ) : (
                 <Text style={styles.amountText}>{paymentData.amount}</Text>
               )}
+            </View>
+
+            <View style={{ backgroundColor: 'rgba(0, 229, 255, 0.1)', padding: 10, borderRadius: 8, marginBottom: 15, flexDirection: 'row', alignItems: 'center' }}>
+              <Ionicons name="wallet-outline" size={16} color="#00E5FF" />
+              <Text style={{ color: '#00E5FF', fontSize: 12, marginLeft: 8, fontWeight: '700' }}>Funding Source: PortelX Web3 Wallet</Text>
             </View>
 
             <TextInput

@@ -12,6 +12,7 @@ import type {
   SubscriptionPlan,
   ChainType,
 } from '../types';
+import api from '../services/api';
 
 export interface AppState {
   // ─── User Profile ──────────────────────────────
@@ -25,6 +26,7 @@ export interface AppState {
   // ─── Payment Cards ─────────────────────────────
   cards: PaymentCard[];
   setCards: (cards: PaymentCard[]) => void;
+  fetchCards: () => Promise<void>;
 
   // ─── Crypto Wallets ────────────────────────────
   wallets: CryptoWallet[];
@@ -34,10 +36,12 @@ export interface AppState {
   // ─── Transactions ──────────────────────────────
   transactions: Transaction[];
   setTransactions: (txs: Transaction[]) => void;
+  fetchTransactions: () => Promise<void>;
 
   // ─── Identity Documents ────────────────────────
   documents: IdentityDocument[];
   setDocuments: (docs: IdentityDocument[]) => void;
+  fetchDocuments: () => Promise<void>;
 
   // ─── Subscription ──────────────────────────────
   subscription: SubscriptionPlan;
@@ -109,6 +113,12 @@ export const useAppStore = create<AppState>((set, get) => ({
   // Cards
   cards: DEFAULT_CARDS,
   setCards: (cards) => set({ cards }),
+  fetchCards: async () => {
+    try {
+      const data = await api.getCards();
+      if (data && data.length > 0) set({ cards: data });
+    } catch {}
+  },
 
   // Wallets
   wallets: DEFAULT_WALLETS,
@@ -118,10 +128,22 @@ export const useAppStore = create<AppState>((set, get) => ({
   // Transactions
   transactions: DEFAULT_TRANSACTIONS,
   setTransactions: (transactions) => set({ transactions }),
+  fetchTransactions: async () => {
+    try {
+      const data = await api.getTransactions();
+      if (data && data.length > 0) set({ transactions: data });
+    } catch {}
+  },
 
   // Documents
   documents: DEFAULT_DOCUMENTS,
   setDocuments: (documents) => set({ documents }),
+  fetchDocuments: async () => {
+    try {
+      const data = await api.getDocs();
+      if (data && data.length > 0) set({ documents: data });
+    } catch {}
+  },
 
   // Subscription
   subscription: DEFAULT_SUBSCRIPTION,

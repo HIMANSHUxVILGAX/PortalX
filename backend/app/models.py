@@ -16,7 +16,8 @@ class User(Base):
     kyc_verified = Column(Boolean, default=False)
     pin_hash = Column(String)  # Storing hashed PIN
     total_spend_limit = Column(Float, default=50000.0)
-    subscription = relationship("SubscriptionTier", back_populates="user", uselist=False)
+    subscription = relationship(
+        "SubscriptionTier", back_populates="user", uselist=False)
 
 
 class SubscriptionTier(Base):
@@ -49,21 +50,64 @@ class GuestSession(Base):
     uit_token = Column(String)
     user_id = Column(Integer, ForeignKey('users.id'))
     is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
+    created_at = Column(
+        DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
     expires_at = Column(DateTime)
     risk_score = Column(Float)
+    device_name = Column(String, default="Unknown Device")
+    device_brand = Column(String, nullable=True)
+    location = Column(String, default="Unknown Location")
+    duration_seconds = Column(Integer, default=0)
+    bytes_zeroized = Column(Integer, default=0)
+    destroyed_at = Column(DateTime, nullable=True)
+    user = relationship("User")
+
+
+class StoredPassword(Base):
+    __tablename__ = 'stored_passwords'
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey('users.id'))
+    service = Column(String)
+    username = Column(String)
+    password = Column(String)
+    created_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
     user = relationship("User")
 
 
 class PaymentTransaction(Base):
     __tablename__ = 'payments'
     id = Column(Integer, primary_key=True, index=True)
-    session_id = Column(String, ForeignKey('guest_sessions.session_id'))
+    session_id = Column(String, index=True)
     vpa = Column(String)
     merchant_name = Column(String)
     amount = Column(Float)
-    status = Column(String)  # SUCCESS, FAILED
-    timestamp = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
+    status = Column(String)
+    timestamp = Column(
+        DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
+
+
+class PaymentCard(Base):
+    __tablename__ = 'payment_cards'
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey('users.id'))
+    bank = Column(String)
+    network = Column(String)
+    balance = Column(Float)
+    masked_number = Column(String)
+    expires = Column(String)
+    background_color = Column(String)
+    badge = Column(String)
+
+
+class IdentityDocument(Base):
+    __tablename__ = 'identity_documents'
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey('users.id'))
+    title = Column(String)
+    subtitle = Column(String)
+    icon = Column(String)
+    verified = Column(Boolean, default=True)
+    source = Column(String)
 
 
 class StreamedDocument(Base):
@@ -85,6 +129,28 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 def init_db():
     Base.metadata.create_all(bind=engine)
+    
+    # Auto-migrate guest_sessions table if missing new columns
+    with engine.connect() as conn:
+        try:
+            res = conn.exec_driver_sql("PRAGMA table_info(guest_sessions)").fetchall()
+            existing_cols = [r[1] for r in res]
+            if "device_name" not in existing_cols:
+                conn.exec_driver_sql("ALTER TABLE guest_sessions ADD COLUMN device_name VARCHAR")
+            if "device_brand" not in existing_cols:
+                conn.exec_driver_sql("ALTER TABLE guest_sessions ADD COLUMN device_brand VARCHAR")
+            if "location" not in existing_cols:
+                conn.exec_driver_sql("ALTER TABLE guest_sessions ADD COLUMN location VARCHAR")
+            if "duration_seconds" not in existing_cols:
+                conn.exec_driver_sql("ALTER TABLE guest_sessions ADD COLUMN duration_seconds INTEGER DEFAULT 0")
+            if "bytes_zeroized" not in existing_cols:
+                conn.exec_driver_sql("ALTER TABLE guest_sessions ADD COLUMN bytes_zeroized INTEGER DEFAULT 0")
+            if "destroyed_at" not in existing_cols:
+                conn.exec_driver_sql("ALTER TABLE guest_sessions ADD COLUMN destroyed_at DATETIME")
+            conn.commit()
+        except Exception as e:
+            pass
+
     # Seed dummy owner if not exists
     db = SessionLocal()
     if not db.query(User).filter(User.handle == "@rahul").first():
@@ -111,6 +177,21 @@ def init_db():
             user_id=user.id
         )
         db.add(sub)
+
+        # Seed Cards
+        card1 = PaymentCard(user_id=user.id, bank="HDFC Bank", network="Visa", balance=145000.50,
+                            masked_number="•••• 4521", expires="12/28", background_color="#1E3A8A", badge="Default")
+        card2 = PaymentCard(user_id=user.id, bank="SBI", network="RuPay", balance=42000.00,
+                            masked_number="•••• 1123", expires="09/26", background_color="#047857", badge="UPI Linked")
+        db.add_all([card1, card2])
+
+        # Seed Docs
+        doc1 = IdentityDocument(user_id=user.id, title="Aadhaar Card", subtitle="UIDAI • Government of India",
+                                icon="finger-print", verified=True, source="DigiLocker")
+        doc2 = IdentityDocument(user_id=user.id, title="PAN Card",
+                                subtitle="Income Tax Department", icon="card", verified=True, source="DigiLocker")
+        db.add_all([doc1, doc2])
+
         db.commit()
     db.close()
 

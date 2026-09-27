@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { api } from '../src/services/api';
 
 interface PasswordEntry {
   id: string;
@@ -24,10 +25,20 @@ interface PasswordEntry {
 export default function PasswordsVaultScreen() {
   const router = useRouter();
   
-  const [passwords, setPasswords] = useState<PasswordEntry[]>([
-    { id: '1', service: 'Netflix', username: 'user@example.com', password: 'SuperSecretPassword123!' },
-    { id: '2', service: 'GitHub', username: 'dev_ninja', password: 'ghp_ThisIsAFakeToken456' },
-  ]);
+  const [passwords, setPasswords] = useState<PasswordEntry[]>([]);
+
+  React.useEffect(() => {
+    fetchPasswords();
+  }, []);
+
+  const fetchPasswords = async () => {
+    try {
+      const data = await api.getPasswords();
+      setPasswords(data || []);
+    } catch (error) {
+      console.error('Failed to fetch passwords:', error);
+    }
+  };
   
   const [revealedIds, setRevealedIds] = useState<Set<string>>(new Set());
   const [modalVisible, setModalVisible] = useState(false);
@@ -55,23 +66,28 @@ export default function PasswordsVaultScreen() {
     // Could add a toast notification here
   };
 
-  const handleAddPassword = () => {
+  const handleAddPassword = async () => {
     if (!newService || !newUsername || !newPassword) return;
     
-    const newEntry: PasswordEntry = {
-      id: Date.now().toString(),
-      service: newService,
-      username: newUsername,
-      password: newPassword,
-    };
-    
-    setPasswords([...passwords, newEntry]);
-    
-    // Reset and close
-    setNewService('');
-    setNewUsername('');
-    setNewPassword('');
-    setModalVisible(false);
+    try {
+      await api.addPassword(newService, newUsername, newPassword);
+      await fetchPasswords();
+      setNewService('');
+      setNewUsername('');
+      setNewPassword('');
+      setModalVisible(false);
+    } catch (error) {
+      console.error('Failed to add password:', error);
+    }
+  };
+
+  const handleDeletePassword = async (id: string) => {
+    try {
+      await api.deletePassword(id);
+      await fetchPasswords();
+    } catch (error) {
+      console.error('Failed to delete password:', error);
+    }
   };
 
   return (
@@ -110,6 +126,9 @@ export default function PasswordsVaultScreen() {
                     </View>
                     <Text style={styles.serviceName}>{item.service}</Text>
                   </View>
+                  <TouchableOpacity onPress={() => handleDeletePassword(item.id)}>
+                    <Ionicons name="trash-outline" size={20} color="#EF4444" />
+                  </TouchableOpacity>
                 </View>
                 
                 <View style={styles.fieldContainer}>

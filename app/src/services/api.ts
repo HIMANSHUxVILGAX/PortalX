@@ -36,8 +36,19 @@ client.interceptors.response.use(
 );
 
 // ─── Vault Endpoints ──────────────────────────────────────
-async function openVault(handle = '@guest', pin = '1234') {
-  const { data } = await client.post('/api/vault/open', { handle, pin });
+async function openVault(
+  handle: string = '@guest',
+  pin: string = '1234',
+  deviceInfo?: { device_name?: string; device_brand?: string; location?: string }
+) {
+  const payload = {
+    handle,
+    pin,
+    device_name: deviceInfo?.device_name || 'Mobile Device',
+    device_brand: deviceInfo?.device_brand || null,
+    location: deviceInfo?.location || 'Unknown Location'
+  };
+  const { data } = await client.post('/api/vault/open', payload);
   return data;
 }
 
@@ -112,6 +123,40 @@ async function getTransactions() {
   }
 }
 
+async function getCards() {
+  const { data } = await client.get('/api/cards');
+  return data;
+}
+
+async function addCard(cardData: any) {
+  const { data } = await client.post('/api/cards', cardData);
+  return data;
+}
+
+async function getDocs() {
+  const { data } = await client.get('/api/docs');
+  return data;
+}
+
+async function addDoc(docData: any) {
+  const { data } = await client.post('/api/docs', docData);
+  return data;
+}
+
+// ─── Passwords ────────────────────────────────────────────
+async function getPasswords() {
+  const { data } = await client.get('/api/passwords');
+  return data;
+}
+async function addPassword(service: string, username: string, password: string) {
+  const { data } = await client.post('/api/passwords', { service, username, password });
+  return data;
+}
+async function deletePassword(id: number | string) {
+  const { data } = await client.delete(`/api/passwords/${id}`);
+  return data;
+}
+
 // ─── Export ───────────────────────────────────────────────
 export const api = {
   openVault,
@@ -123,6 +168,13 @@ export const api = {
   getUserProfile,
   getVaultHistory,
   getTransactions,
+  getCards,
+  addCard,
+  getDocs,
+  addDoc,
+  getPasswords,
+  addPassword,
+  deletePassword,
 };
 
 export default api;

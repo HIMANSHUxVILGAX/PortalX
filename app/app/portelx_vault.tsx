@@ -1,15 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Modal, Animated } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Modal, Animated, AppState, AppStateStatus, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as ScreenCapture from 'expo-screen-capture';
 import { useSessionStore } from '../src/store/useSessionStore';
+import { useAppStore } from '../src/store/useAppStore';
 import { API_BASE_URL } from '../src/constants/config';
 
 export default function PortelxVaultScreen() {
   const router = useRouter();
   const { session, timeLeft, tick, destroyVault, openVault, guestName, guestHandle } = useSessionStore();
+  const { user } = useAppStore();
   const [modalVisible, setModalVisible] = useState(false);
+  const [isBlackout, setIsBlackout] = useState(false);
 
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -40,10 +43,36 @@ export default function PortelxVaultScreen() {
     ]).start();
 
     // Prevent screen capture
-    ScreenCapture.preventScreenCaptureAsync();
+    if (Platform.OS !== 'web') {
+      try {
+        ScreenCapture.preventScreenCaptureAsync();
+      } catch (e) { }
+    }
+
+    const subscription = AppState.addEventListener('change', async (nextAppState) => {
+      if (nextAppState === 'inactive' || nextAppState === 'background') {
+        setIsBlackout(true);
+        // Immediate destruction on backgrounding
+        try {
+          const res = await destroyVault();
+          const latency = res?.wipeLatencyMs || 100;
+          const bytes = res?.bytesZeroized || 0;
+          router.replace({ pathname: '/portelx_zeroized', params: { latency: latency.toString(), bytes: bytes.toString() } });
+        } catch {
+          router.replace({ pathname: '/portelx_zeroized', params: { latency: '100', bytes: '0' } });
+        }
+      } else if (nextAppState === 'active') {
+        setIsBlackout(false);
+      }
+    });
 
     return () => {
-      ScreenCapture.allowScreenCaptureAsync();
+      subscription.remove();
+      if (Platform.OS !== 'web') {
+        try {
+          ScreenCapture.allowScreenCaptureAsync();
+        } catch (e) { }
+      }
     };
   }, []);
 
@@ -51,11 +80,11 @@ export default function PortelxVaultScreen() {
     setModalVisible(false);
     try {
       const res = await destroyVault();
-      const latency = res?.wipeLatencyMs || 342;
-      const bytes = res?.bytesZeroized || 849302;
+      const latency = res?.wipeLatencyMs !== undefined ? res.wipeLatencyMs : '0.0021';
+      const bytes = res?.bytesZeroized !== undefined ? res.bytesZeroized : 0;
       router.replace({ pathname: '/portelx_zeroized', params: { latency: latency.toString(), bytes: bytes.toString() } });
     } catch (e) {
-      router.replace({ pathname: '/portelx_zeroized', params: { latency: '342', bytes: '849302' } });
+      router.replace({ pathname: '/portelx_zeroized', params: { latency: '0.0021', bytes: '0' } });
     }
   };
 
@@ -116,6 +145,11 @@ export default function PortelxVaultScreen() {
 
   return (
     <View style={styles.container}>
+      {isBlackout && (
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: 'black', zIndex: 9999, justifyContent: 'center', alignItems: 'center' }]}>
+          <Text style={{ color: '#333', fontSize: 18 }}>Securing Vault...</Text>
+        </View>
+      )}
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
@@ -154,8 +188,8 @@ export default function PortelxVaultScreen() {
               <Ionicons name="card-outline" size={20} color="#94A3B8" style={{ marginRight: 8 }} />
               <Text style={styles.cardSubtitle}>Isolated Spend Limit</Text>
             </View>
-            <Text style={styles.spendLimit}>₹50,000</Text>
-            <Text style={styles.upiId}>UPI: guest@portelx</Text>
+            <Text style={styles.spendLimit}>₹{(user?.totalSpendLimit || 50000).toLocaleString('en-IN')}</Text>
+            <Text style={styles.upiId}>UPI: {session?.sessionId ? session.sessionId.slice(0, 8).toLowerCase() : 'guest'}@portelx</Text>
 
             <TouchableOpacity
               style={styles.scanPayBtn}
@@ -164,6 +198,23 @@ export default function PortelxVaultScreen() {
               <Ionicons name="qr-code-outline" size={24} color="#000" />
               <Text style={styles.scanPayBtnText}>Scan & Pay</Text>
             </TouchableOpacity>
+
+            <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
+              <TouchableOpacity
+                style={[styles.scanPayBtn, { flex: 1, backgroundColor: '#1E293B' }]}
+                onPress={() => router.push('/crypto_portfolio')}
+              >
+                <Ionicons name="document-text-outline" size={20} color="#00E5FF" />
+                <Text style={[styles.scanPayBtnText, { color: '#00E5FF', fontSize: 13, marginLeft: 6 }]}>Docs</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.scanPayBtn, { flex: 1, backgroundColor: '#1E293B' }]}
+                onPress={() => router.push('/passwords_vault')}
+              >
+                <Ionicons name="key-outline" size={20} color="#00E5FF" />
+                <Text style={[styles.scanPayBtnText, { color: '#00E5FF', fontSize: 13, marginLeft: 6 }]}>Passwords</Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* Streamed Documents */}

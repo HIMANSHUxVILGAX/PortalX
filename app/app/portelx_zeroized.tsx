@@ -7,8 +7,8 @@ export default function ZeroizedScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   
-  const latency = params.latency || '0.0014';
-  const targetBytes = parseInt(params.bytes as string) || 44;
+  const latency = params.latency || '0.0000';
+  const targetBytes = parseInt(params.bytes as string) || 0;
 
   const [displayBytes, setDisplayBytes] = useState(0);
 

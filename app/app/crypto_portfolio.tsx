@@ -7,12 +7,12 @@ import {
   ScrollView,
   Animated,
   Dimensions,
-  SafeAreaView,
   Modal,
   TextInput,
   StatusBar,
   ActivityIndicator,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAppStore } from '../src/store/useAppStore';
@@ -40,20 +40,20 @@ export default function CryptoPortfolioScreen() {
   const [buyAmount, setBuyAmount] = useState('5000');
   const [buySuccess, setBuySuccess] = useState(false);
   const [isBuying, setIsBuying] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<'upi' | 'sbi'>('upi');
+  const [paymentMethod, setPaymentMethod] = useState<'upi' | 'bank'>('upi');
 
   // New Wallet form
   const [newWalletAddress, setNewWalletAddress] = useState('');
-  const [walletNetwork, setWalletNetwork] = useState('Ethereum (ERC-20)');
+  const [walletNetwork, setWalletNetwork] = useState('Ethereum');
 
   // Filter state for crypto transactions
   const [cryptoTxFilter, setCryptoTxFilter] = useState<'all' | 'bought' | 'sold'>('all');
 
   const cryptoTransactions = [
-    { id: 'c1', type: 'bought', title: 'Bought 0.024 ETH', via: 'Paid via GPay UPI', amount: '+₹5,000', date: 'Today, 4:10 PM', icon: 'arrow-down-circle', color: '#10B981' },
-    { id: 'c2', type: 'sold', title: 'Sold 120 USDT', via: 'Credited to HDFC ••4521', amount: '-₹10,020', date: 'Yesterday, 6:30 PM', icon: 'arrow-up-circle', color: '#EF4444' },
-    { id: 'c3', type: 'bought', title: 'Bought 1.5 SOL', via: 'Paid via ICICI UPI', amount: '+₹19,275', date: '14 Sep, 11:20 AM', icon: 'arrow-down-circle', color: '#10B981' },
-    { id: 'c4', type: 'sold', title: 'Off-Ramp 0.05 BTC', via: 'Credited to SBI ••1123', amount: '-₹2,81,155', date: '11 Sep, 2:45 PM', icon: 'arrow-up-circle', color: '#EF4444' },
+    { id: 'c1', type: 'bought', title: 'Bought ETH', via: 'Paid via UPI', amount: '+₹5,000', date: 'Today, 4:10 PM', icon: 'arrow-down', color: '#10B981' },
+    { id: 'c2', type: 'sold', title: 'Sold USDT', via: 'Credited to HDFC Bank', amount: '-₹10,020', date: 'Yesterday, 6:30 PM', icon: 'arrow-up', color: '#EF4444' },
+    { id: 'c3', type: 'bought', title: 'Bought SOL', via: 'Paid via UPI', amount: '+₹19,275', date: '14 Sep, 11:20 AM', icon: 'arrow-down', color: '#10B981' },
+    { id: 'c4', type: 'sold', title: 'Sold BTC', via: 'Credited to SBI Bank', amount: '-₹2,81,155', date: '11 Sep, 2:45 PM', icon: 'arrow-up', color: '#EF4444' },
   ];
 
   const filteredCryptoTx = cryptoTransactions.filter(tx => {
@@ -65,12 +65,12 @@ export default function CryptoPortfolioScreen() {
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 700,
+        duration: 500,
         useNativeDriver: true,
       }),
       Animated.timing(slideAnim, {
         toValue: 0,
-        duration: 700,
+        duration: 500,
         useNativeDriver: true,
       }),
     ]).start();
@@ -85,25 +85,31 @@ export default function CryptoPortfolioScreen() {
         setBuySuccess(false);
         setShowBuyModal(false);
       }, 2000);
-    }, 2000);
+    }, 1500);
+  };
+
+  const getCoinIcon = (symbol: string) => {
+    switch (symbol) {
+      case 'BTC': return <MaterialCommunityIcons name="bitcoin" size={24} color="#F7931A" />;
+      case 'ETH': return <MaterialCommunityIcons name="ethereum" size={24} color="#627EEA" />;
+      case 'SOL': return <MaterialCommunityIcons name="currency-usd" size={24} color="#14F195" />;
+      case 'USDT': return <MaterialCommunityIcons name="currency-usd" size={24} color="#26A17B" />;
+      default: return <MaterialCommunityIcons name="circle-multiple-outline" size={24} color="#94A3B8" />;
+    }
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" />
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      <StatusBar barStyle="light-content" backgroundColor="#07090E" />
 
       {/* HEADER */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#00E5FF" />
+          <Ionicons name="arrow-back" size={24} color="#F8FAFC" />
         </TouchableOpacity>
-        <View style={{ alignItems: 'center' }}>
-          <Text style={styles.headerTitle}>PORTELX WEB3 VAULT</Text>
-          <Text style={styles.headerSub}>Self-Sovereign Multi-Chain Layer</Text>
-        </View>
-        <TouchableOpacity style={styles.networkBadge} onPress={() => setShowAddWalletModal(true)}>
-          <Ionicons name="add-circle" size={16} color="#00E5FF" style={{ marginRight: 4 }} />
-          <Text style={styles.networkBadgeText}>Add Wallet</Text>
+        <Text style={styles.headerTitle}>Crypto Portfolio</Text>
+        <TouchableOpacity style={styles.addWalletIcon} onPress={() => setShowAddWalletModal(true)}>
+          <Ionicons name="add" size={24} color="#F8FAFC" />
         </TouchableOpacity>
       </View>
 
@@ -112,55 +118,47 @@ export default function CryptoPortfolioScreen() {
 
           {/* MAIN PORTFOLIO CARD */}
           <View style={styles.portfolioCard}>
-            <View style={styles.portfolioTop}>
-              <View>
-                <Text style={styles.portfolioLabel}>TOTAL WEB3 PORTFOLIO</Text>
-                <Text style={styles.portfolioAmount}>{formatINR(totalCryptoBalance())}</Text>
-              </View>
+            <Text style={styles.portfolioLabel}>Total Balance</Text>
+            <View style={styles.portfolioAmountRow}>
+              <Text style={styles.portfolioAmount}>{formatINR(totalCryptoBalance())}</Text>
               <View style={styles.changeBadge}>
-                <Ionicons name="caret-up" size={14} color="#10B981" />
-                <Text style={styles.changeText}> +14.5% (24h)</Text>
+                <Ionicons name="caret-up" size={12} color="#10B981" />
+                <Text style={styles.changeText}> 2.4%</Text>
               </View>
             </View>
-
-            {/* Quick linked wallet banner */}
-            <View style={styles.linkedAddressBar}>
-              <Ionicons name="key-outline" size={14} color="#00E5FF" style={{ marginRight: 6 }} />
-              <Text style={styles.linkedAddressText}>Vault Public Address: {wallets[0]?.displayAddress || '0x...'}</Text>
-              <Text style={styles.alchemySync}>Alchemy Live</Text>
-            </View>
+            {wallets.length > 0 && (
+              <View style={styles.linkedAddressBar}>
+                <Text style={styles.linkedAddressText}>Primary Wallet: {wallets[0]?.displayAddress || 'Not connected'}</Text>
+              </View>
+            )}
           </View>
 
-          {/* ACTION BUTTONS: RECHARGE VIA UPI / SELL / SWAP */}
+          {/* ACTION BUTTONS */}
           <View style={styles.actionRow}>
-            {/* BUY / RECHARGE WITH UPI */}
-            <TouchableOpacity style={styles.actionBtn} onPress={() => setShowBuyModal(true)} activeOpacity={0.8}>
-              <View style={[styles.actionIconBg, { backgroundColor: 'rgba(0, 229, 255, 0.15)', borderColor: '#00E5FF' }]}>
-                <Ionicons name="wallet-outline" size={24} color="#00E5FF" />
+            <TouchableOpacity style={styles.actionBtn} onPress={() => setShowBuyModal(true)} activeOpacity={0.7}>
+              <View style={styles.actionIconBg}>
+                <Ionicons name="add-outline" size={22} color="#F8FAFC" />
               </View>
-              <Text style={[styles.actionText, { color: '#00E5FF' }]}>Buy via UPI</Text>
+              <Text style={styles.actionText}>Buy</Text>
             </TouchableOpacity>
 
-            {/* SELL / CASH-OUT */}
-            <TouchableOpacity style={styles.actionBtn} onPress={() => setShowBuyModal(true)} activeOpacity={0.8}>
-              <View style={[styles.actionIconBg, { backgroundColor: 'rgba(245, 158, 11, 0.15)', borderColor: '#F59E0B' }]}>
-                <Ionicons name="cash-outline" size={24} color="#F59E0B" />
+            <TouchableOpacity style={styles.actionBtn} onPress={() => setShowBuyModal(true)} activeOpacity={0.7}>
+              <View style={styles.actionIconBg}>
+                <Ionicons name="arrow-down-outline" size={22} color="#F8FAFC" />
               </View>
-              <Text style={styles.actionText}>Sell / Bank</Text>
+              <Text style={styles.actionText}>Sell</Text>
             </TouchableOpacity>
 
-            {/* SWAP */}
-            <TouchableOpacity style={styles.actionBtn} activeOpacity={0.8}>
-              <View style={[styles.actionIconBg, { backgroundColor: 'rgba(168, 85, 247, 0.15)', borderColor: '#A855F7' }]}>
-                <Ionicons name="swap-horizontal-outline" size={24} color="#A855F7" />
+            <TouchableOpacity style={styles.actionBtn} activeOpacity={0.7}>
+              <View style={styles.actionIconBg}>
+                <Ionicons name="swap-horizontal-outline" size={22} color="#F8FAFC" />
               </View>
-              <Text style={styles.actionText}>Cross-Swap</Text>
+              <Text style={styles.actionText}>Swap</Text>
             </TouchableOpacity>
 
-            {/* ADD WALLET */}
-            <TouchableOpacity style={styles.actionBtn} onPress={() => setShowAddWalletModal(true)} activeOpacity={0.8}>
-              <View style={[styles.actionIconBg, { backgroundColor: 'rgba(16, 185, 129, 0.15)', borderColor: '#10B981' }]}>
-                <Ionicons name="link-outline" size={24} color="#10B981" />
+            <TouchableOpacity style={styles.actionBtn} onPress={() => setShowAddWalletModal(true)} activeOpacity={0.7}>
+              <View style={styles.actionIconBg}>
+                <Ionicons name="link-outline" size={22} color="#F8FAFC" />
               </View>
               <Text style={styles.actionText}>Connect</Text>
             </TouchableOpacity>
@@ -168,8 +166,7 @@ export default function CryptoPortfolioScreen() {
 
           {/* ASSET HOLDINGS LIST */}
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Your Verified Crypto Holdings</Text>
-            <Text style={styles.assetCountText}>4 Tokens Syncing</Text>
+            <Text style={styles.sectionTitle}>Your Assets</Text>
           </View>
 
           <View style={styles.assetsList}>
@@ -177,56 +174,35 @@ export default function CryptoPortfolioScreen() {
               <View key={coin.id} style={styles.coinCard}>
                 <View style={styles.coinLeft}>
                   <View style={styles.coinIconWrapper}>
-                    <MaterialCommunityIcons name="currency-usd" size={24} color="#00E5FF" />
+                    {getCoinIcon(coin.symbol)}
                   </View>
                   <View>
                     <Text style={styles.coinName}>{coin.chain}</Text>
-                    <Text style={styles.coinSymbol}>{coin.symbol} • {coin.balance}</Text>
+                    <Text style={styles.coinSymbol}>{coin.balance} {coin.symbol}</Text>
                   </View>
                 </View>
 
                 <View style={styles.coinRight}>
                   <Text style={styles.coinPrice}>{coin.fiatValue}</Text>
-                  <View style={styles.coinChangeRow}>
-                    <Text style={styles.coinRateText}>1 = ₹...</Text>
-                    <Text
-                      style={[
-                        styles.coinChange,
-                        { color: '#10B981' }
-                      ]}
-                    >
-                      +0.0%
-                    </Text>
-                  </View>
                 </View>
               </View>
             ))}
+            {wallets.length === 0 && (
+               <Text style={styles.emptyText}>No assets found. Connect a wallet.</Text>
+            )}
           </View>
 
-          {/* FIAT-TO-CRYPTO ON-RAMP BANNER */}
-          <View style={styles.onRampBanner}>
-            <View style={styles.onRampLeft}>
-              <Ionicons name="shield-checkmark" size={24} color="#00E5FF" />
-              <View style={{ marginLeft: 12 }}>
-                <Text style={styles.onRampTitle}>Direct Bank to Blockchain Ramp</Text>
-                <Text style={styles.onRampSub}>
-                  Powered by NPCI UPI rails + MoonPay liquidity. Zero KYC friction.
-                </Text>
-              </View>
-            </View>
-          </View>
-
-          {/* CRYPTO TRANSACTION HISTORY WITH FILTERS */}
+          {/* CRYPTO TRANSACTION HISTORY */}
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Crypto On-Ramp & Off-Ramp History</Text>
+            <Text style={styles.sectionTitle}>Recent Transactions</Text>
           </View>
 
           {/* Filters */}
           <View style={styles.filterRow}>
             {[
-              { id: 'all', label: 'All Orders' },
-              { id: 'bought', label: '🟢 Only Bought (UPI)' },
-              { id: 'sold', label: '🔴 Only Sold (Bank Credit)' },
+              { id: 'all', label: 'All' },
+              { id: 'bought', label: 'Bought' },
+              { id: 'sold', label: 'Sold' },
             ].map(f => (
               <TouchableOpacity
                 key={f.id}
@@ -236,7 +212,7 @@ export default function CryptoPortfolioScreen() {
                 <Text
                   style={[
                     styles.filterChipText,
-                    cryptoTxFilter === f.id && { color: '#07090E', fontWeight: '800' },
+                    cryptoTxFilter === f.id && { color: '#07090E', fontWeight: '600' },
                   ]}
                 >
                   {f.label}
@@ -255,8 +231,8 @@ export default function CryptoPortfolioScreen() {
                   idx < filteredCryptoTx.length - 1 && { borderBottomWidth: 1, borderBottomColor: '#1E293B' },
                 ]}
               >
-                <View style={[styles.txIconBg, { backgroundColor: `${tx.color}18` }]}>
-                  <Ionicons name={tx.icon as any} size={20} color={tx.color} />
+                <View style={[styles.txIconBg, { backgroundColor: `${tx.color}15` }]}>
+                  <Ionicons name={tx.icon as any} size={18} color={tx.color} />
                 </View>
                 <View style={{ flex: 1, marginLeft: 12 }}>
                   <Text style={styles.txTitle}>{tx.title}</Text>
@@ -268,6 +244,9 @@ export default function CryptoPortfolioScreen() {
                 </View>
               </View>
             ))}
+            {filteredCryptoTx.length === 0 && (
+               <Text style={styles.emptyText}>No transactions found.</Text>
+            )}
           </View>
         </Animated.View>
 
@@ -279,10 +258,7 @@ export default function CryptoPortfolioScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalSheet}>
             <View style={styles.modalHeader}>
-              <View>
-                <Text style={styles.modalSheetTitle}>Fiat to Crypto On-Ramp</Text>
-                <Text style={styles.modalSheetSub}>Convert INR directly to BTC, ETH or USDT</Text>
-              </View>
+              <Text style={styles.modalSheetTitle}>Buy Crypto</Text>
               <TouchableOpacity onPress={() => setShowBuyModal(false)} style={styles.modalClose}>
                 <Ionicons name="close" size={20} color="#94A3B8" />
               </TouchableOpacity>
@@ -291,14 +267,13 @@ export default function CryptoPortfolioScreen() {
             {buySuccess ? (
               <View style={styles.successStateBox}>
                 <Ionicons name="checkmark-circle" size={60} color="#10B981" />
-                <Text style={styles.successStateTitle}>₹{buyAmount} Recharge Initiated!</Text>
+                <Text style={styles.successStateTitle}>Payment Successful!</Text>
                 <Text style={styles.successStateSub}>
-                  Payment request sent. Crypto will be deposited into your vault in ~30s.
+                  ₹{buyAmount} added to your portfolio.
                 </Text>
               </View>
             ) : (
               <>
-                <Text style={styles.sheetLabel}>Amount in Indian Rupees (₹)</Text>
                 <View style={styles.amountInputRow}>
                   <Text style={styles.rupeeSymbol}>₹</Text>
                   <TextInput
@@ -306,45 +281,40 @@ export default function CryptoPortfolioScreen() {
                     onChangeText={setBuyAmount}
                     keyboardType="number-pad"
                     style={styles.amountInput}
+                    placeholderTextColor="#64748B"
                   />
                 </View>
 
                 {/* Quick amount chips */}
                 <View style={styles.quickAmountRow}>
-                  {['1000', '5000', '10000', '25000', '50000'].map(amt => (
+                  {['1000', '5000', '10000', '25000'].map(amt => (
                     <TouchableOpacity
                       key={amt}
                       style={[styles.quickChip, buyAmount === amt && styles.quickChipActive]}
                       onPress={() => setBuyAmount(amt)}
                     >
-                      <Text style={[styles.quickChipText, buyAmount === amt && { color: '#00E5FF' }]}>
+                      <Text style={[styles.quickChipText, buyAmount === amt && { color: '#0F172A' }]}>
                         ₹{amt}
                       </Text>
                     </TouchableOpacity>
                   ))}
                 </View>
 
-                {/* You receive estimation */}
-                <View style={styles.estimateCard}>
-                  <Text style={styles.estimateLabel}>ESTIMATED CRYPTO TO RECEIVE</Text>
-                  <Text style={styles.estimateValue}>
-                    ≈ {(parseFloat(buyAmount || '0') / 5000000).toFixed(4)} BTC
-                  </Text>
-                  <Text style={styles.estimateFee}>Network Fee: ₹24 • Slippage: 0.1%</Text>
+                <View style={styles.estimateBox}>
+                  <Text style={styles.estimateText}>You will get approx. {(parseFloat(buyAmount || '0') / 5000000).toFixed(4)} BTC</Text>
                 </View>
 
-                {/* Payment method selector */}
-                <Text style={styles.sheetLabel}>Select Payment Method</Text>
+                <Text style={styles.sheetLabel}>Pay using</Text>
                 <TouchableOpacity 
                   style={[styles.paymentMethodCard, paymentMethod === 'upi' && styles.paymentMethodCardActive]} 
                   onPress={() => setPaymentMethod('upi')}
                   activeOpacity={0.8}
                 >
                   <View style={styles.paymentMethodLeft}>
-                    <Ionicons name="flash" size={20} color={paymentMethod === 'upi' ? "#00E5FF" : "#64748B"} />
-                    <View style={{ marginLeft: 10 }}>
-                      <Text style={styles.paymentMethodTitle}>UPI (rahul@portelx)</Text>
-                      <Text style={styles.paymentMethodSub}>Instant transfer</Text>
+                    <Ionicons name="flash-outline" size={20} color={paymentMethod === 'upi' ? "#F8FAFC" : "#64748B"} />
+                    <View style={{ marginLeft: 12 }}>
+                      <Text style={[styles.paymentMethodTitle, paymentMethod === 'upi' && {color: '#F8FAFC'}]}>UPI Transfer</Text>
+                      <Text style={styles.paymentMethodSub}>Instant • Zero fees</Text>
                     </View>
                   </View>
                   <View style={[styles.radioCircle, paymentMethod === 'upi' && styles.radioCircleActive]}>
@@ -353,30 +323,27 @@ export default function CryptoPortfolioScreen() {
                 </TouchableOpacity>
 
                 <TouchableOpacity 
-                  style={[styles.paymentMethodCard, paymentMethod === 'sbi' && styles.paymentMethodCardActive]} 
-                  onPress={() => setPaymentMethod('sbi')}
+                  style={[styles.paymentMethodCard, paymentMethod === 'bank' && styles.paymentMethodCardActive]} 
+                  onPress={() => setPaymentMethod('bank')}
                   activeOpacity={0.8}
                 >
                   <View style={styles.paymentMethodLeft}>
-                    <Ionicons name="business" size={20} color={paymentMethod === 'sbi' ? "#00E5FF" : "#64748B"} />
-                    <View style={{ marginLeft: 10 }}>
-                      <Text style={styles.paymentMethodTitle}>SBI Bank Account (•••• 1123)</Text>
-                      <Text style={styles.paymentMethodSub}>Takes 2-4 hours</Text>
+                    <Ionicons name="business-outline" size={20} color={paymentMethod === 'bank' ? "#F8FAFC" : "#64748B"} />
+                    <View style={{ marginLeft: 12 }}>
+                      <Text style={[styles.paymentMethodTitle, paymentMethod === 'bank' && {color: '#F8FAFC'}]}>Bank Transfer</Text>
+                      <Text style={styles.paymentMethodSub}>Up to 2 hours</Text>
                     </View>
                   </View>
-                  <View style={[styles.radioCircle, paymentMethod === 'sbi' && styles.radioCircleActive]}>
-                    {paymentMethod === 'sbi' && <View style={styles.radioInner} />}
+                  <View style={[styles.radioCircle, paymentMethod === 'bank' && styles.radioCircleActive]}>
+                    {paymentMethod === 'bank' && <View style={styles.radioInner} />}
                   </View>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.payNowBtn} onPress={handleSimulateBuy} activeOpacity={0.85} disabled={isBuying}>
+                <TouchableOpacity style={styles.primaryBtn} onPress={handleSimulateBuy} activeOpacity={0.8} disabled={isBuying}>
                   {isBuying ? (
                     <ActivityIndicator color="#07090E" />
                   ) : (
-                    <>
-                      <Text style={styles.payNowText}>Instant Buy via {paymentMethod === 'upi' ? 'UPI' : 'SBI'}</Text>
-                      <Ionicons name="arrow-forward" size={18} color="#07090E" />
-                    </>
+                    <Text style={styles.primaryBtnText}>Proceed to Pay</Text>
                   )}
                 </TouchableOpacity>
               </>
@@ -390,34 +357,31 @@ export default function CryptoPortfolioScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalSheet}>
             <View style={styles.modalHeader}>
-              <View>
-                <Text style={styles.modalSheetTitle}>Add Crypto Account</Text>
-                <Text style={styles.modalSheetSub}>Link public key to track on PortelX</Text>
-              </View>
+              <Text style={styles.modalSheetTitle}>Connect Wallet</Text>
               <TouchableOpacity onPress={() => setShowAddWalletModal(false)} style={styles.modalClose}>
                 <Ionicons name="close" size={20} color="#94A3B8" />
               </TouchableOpacity>
             </View>
 
-            <Text style={styles.sheetLabel}>Select Network</Text>
-            <View style={styles.quickAmountRow}>
-              {['Ethereum (ERC-20)', 'Solana (SPL)', 'Bitcoin (SegWit)'].map(net => (
+            <Text style={styles.sheetLabel}>Network</Text>
+            <View style={styles.networkRow}>
+              {['Ethereum', 'Solana', 'Bitcoin'].map(net => (
                 <TouchableOpacity
                   key={net}
-                  style={[styles.quickChip, walletNetwork === net && styles.quickChipActive]}
+                  style={[styles.networkChip, walletNetwork === net && styles.networkChipActive]}
                   onPress={() => setWalletNetwork(net)}
                 >
-                  <Text style={[styles.quickChipText, walletNetwork === net && { color: '#00E5FF' }]}>
-                    {net.split(' ')[0]}
+                  <Text style={[styles.networkChipText, walletNetwork === net && { color: '#0F172A' }]}>
+                    {net}
                   </Text>
                 </TouchableOpacity>
               ))}
             </View>
 
-            <Text style={styles.sheetLabel}>Enter Public Address / ENS</Text>
+            <Text style={styles.sheetLabel}>Wallet Address</Text>
             <View style={styles.addressInputBox}>
               <TextInput
-                placeholder="0x... or rahul.eth"
+                placeholder="Enter public address or ENS"
                 placeholderTextColor="#64748B"
                 value={newWalletAddress}
                 onChangeText={setNewWalletAddress}
@@ -427,13 +391,14 @@ export default function CryptoPortfolioScreen() {
             </View>
 
             <TouchableOpacity
-              style={styles.payNowBtn}
+              style={styles.primaryBtn}
               onPress={() => {
                 setShowAddWalletModal(false);
                 setNewWalletAddress('');
               }}
+              activeOpacity={0.8}
             >
-              <Text style={styles.payNowText}>Connect & Sync Balance</Text>
+              <Text style={styles.primaryBtnText}>Connect Wallet</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -454,261 +419,171 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 12,
     paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#1E293B',
   },
   backButton: {
     padding: 8,
-    borderRadius: 12,
-    backgroundColor: '#111827',
+    marginLeft: -8,
   },
   headerTitle: {
-    fontSize: 13,
-    fontWeight: '900',
+    fontSize: 18,
+    fontWeight: '600',
     color: '#F8FAFC',
-    letterSpacing: 1.2,
   },
-  headerSub: {
-    fontSize: 10,
-    color: '#64748B',
-    marginTop: 2,
-  },
-  networkBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 229, 255, 0.1)',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 229, 255, 0.25)',
-  },
-  networkBadgeText: {
-    color: '#00E5FF',
-    fontSize: 11,
-    fontWeight: '700',
+  addWalletIcon: {
+    padding: 8,
+    marginRight: -8,
   },
   scrollContent: {
     padding: 20,
+    paddingTop: 8,
   },
 
   portfolioCard: {
     backgroundColor: '#0F172A',
-    borderRadius: 24,
-    padding: 22,
-    borderWidth: 1.5,
-    borderColor: '#00E5FF',
-    shadowColor: '#00E5FF',
-    shadowOpacity: 0.25,
-    shadowRadius: 16,
-    elevation: 8,
-    marginBottom: 20,
-  },
-  portfolioTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 14,
+    borderRadius: 20,
+    padding: 24,
+    marginBottom: 24,
   },
   portfolioLabel: {
     color: '#94A3B8',
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 1,
+    fontSize: 14,
+    fontWeight: '500',
+    marginBottom: 8,
+  },
+  portfolioAmountRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
   },
   portfolioAmount: {
     color: '#F8FAFC',
-    fontSize: 28,
-    fontWeight: '900',
-    letterSpacing: -0.5,
-    marginTop: 4,
+    fontSize: 32,
+    fontWeight: '700',
+    marginRight: 12,
   },
   changeBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(16, 185, 129, 0.18)',
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 8,
+    borderRadius: 6,
   },
   changeText: {
     color: '#10B981',
-    fontWeight: '800',
-    fontSize: 12,
+    fontWeight: '600',
+    fontSize: 13,
   },
   linkedAddressBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#1E293B',
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#1E293B',
   },
   linkedAddressText: {
-    color: '#CBD5E1',
-    fontSize: 11,
-    fontFamily: 'monospace',
-    flex: 1,
-  },
-  alchemySync: {
-    color: '#00E5FF',
-    fontSize: 10,
-    fontWeight: '800',
+    color: '#94A3B8',
+    fontSize: 13,
   },
 
   actionRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 24,
+    marginBottom: 32,
+    paddingHorizontal: 8,
   },
   actionBtn: {
     alignItems: 'center',
     width: (width - 60) / 4,
   },
   actionIconBg: {
-    width: 54,
-    height: 54,
-    borderRadius: 18,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#1E293B',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 6,
-    borderWidth: 1,
+    marginBottom: 8,
   },
   actionText: {
     color: '#CBD5E1',
-    fontSize: 11,
-    fontWeight: '700',
+    fontSize: 13,
+    fontWeight: '500',
   },
 
   sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 16,
   },
   sectionTitle: {
     color: '#F8FAFC',
-    fontSize: 14,
-    fontWeight: '800',
-    letterSpacing: 0.3,
-  },
-  assetCountText: {
-    color: '#00E5FF',
-    fontSize: 11,
-    fontWeight: '700',
+    fontSize: 18,
+    fontWeight: '600',
   },
 
   assetsList: {
-    gap: 10,
-    marginBottom: 20,
+    gap: 12,
+    marginBottom: 32,
   },
   coinCard: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#0F172A',
-    borderRadius: 18,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#1E293B',
+    paddingVertical: 12,
   },
   coinLeft: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   coinIconWrapper: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: '#1E293B',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: 16,
   },
   coinName: {
     color: '#F8FAFC',
-    fontSize: 15,
-    fontWeight: '800',
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
   },
   coinSymbol: {
     color: '#94A3B8',
-    fontSize: 11,
-    marginTop: 2,
-    fontWeight: '600',
+    fontSize: 14,
   },
   coinRight: {
     alignItems: 'flex-end',
   },
   coinPrice: {
     color: '#F8FAFC',
-    fontSize: 15,
-    fontWeight: '800',
-  },
-  coinChangeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 2,
-    gap: 6,
-  },
-  coinRateText: {
-    color: '#64748B',
-    fontSize: 10,
-  },
-  coinChange: {
-    fontSize: 11,
-    fontWeight: '800',
-  },
-
-  onRampBanner: {
-    backgroundColor: 'rgba(0, 229, 255, 0.08)',
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 229, 255, 0.25)',
-    marginBottom: 20,
-  },
-  onRampLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  onRampTitle: {
-    color: '#00E5FF',
-    fontSize: 13,
-    fontWeight: '800',
-  },
-  onRampSub: {
-    color: '#94A3B8',
-    fontSize: 11,
-    marginTop: 3,
-    lineHeight: 15,
+    fontSize: 16,
+    fontWeight: '600',
   },
 
   filterRow: {
     flexDirection: 'row',
-    gap: 8,
-    marginBottom: 12,
+    gap: 12,
+    marginBottom: 16,
   },
   filterChip: {
     backgroundColor: '#1E293B',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 18,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
   },
   filterChipActive: {
-    backgroundColor: '#00E5FF',
+    backgroundColor: '#F8FAFC',
   },
   filterChipText: {
     color: '#94A3B8',
-    fontSize: 11,
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '500',
   },
 
   txBox: {
     backgroundColor: '#0F172A',
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: '#1E293B',
-    padding: 6,
+    borderRadius: 16,
+    padding: 8,
   },
   txItem: {
     flexDirection: 'row',
@@ -716,231 +591,222 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   txIconBg: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
   },
   txTitle: {
     color: '#F8FAFC',
-    fontSize: 13,
-    fontWeight: '700',
+    fontSize: 15,
+    fontWeight: '500',
+    marginBottom: 4,
   },
   txVia: {
-    color: '#64748B',
-    fontSize: 11,
-    marginTop: 2,
+    color: '#94A3B8',
+    fontSize: 13,
   },
   txAmount: {
-    fontSize: 14,
-    fontWeight: '800',
+    fontSize: 15,
+    fontWeight: '600',
+    marginBottom: 4,
   },
   txDate: {
+    color: '#94A3B8',
+    fontSize: 12,
+  },
+  emptyText: {
     color: '#64748B',
-    fontSize: 10,
-    marginTop: 2,
+    fontSize: 14,
+    textAlign: 'center',
+    paddingVertical: 20,
   },
 
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.8)',
+    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'flex-end',
   },
   modalSheet: {
     backgroundColor: '#0F172A',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    padding: 22,
-    paddingBottom: 36,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    paddingBottom: 40,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 24,
   },
   modalSheetTitle: {
     color: '#F8FAFC',
-    fontSize: 18,
-    fontWeight: '900',
-  },
-  modalSheetSub: {
-    color: '#94A3B8',
-    fontSize: 11,
-    marginTop: 2,
+    fontSize: 20,
+    fontWeight: '600',
   },
   modalClose: {
-    padding: 6,
-    backgroundColor: '#1E293B',
-    borderRadius: 10,
-  },
-  sheetLabel: {
-    color: '#94A3B8',
-    fontSize: 11,
-    fontWeight: '700',
-    marginTop: 10,
-    marginBottom: 8,
+    padding: 4,
   },
   amountInputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1E293B',
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    justifyContent: 'center',
+    marginBottom: 24,
   },
   rupeeSymbol: {
-    color: '#00E5FF',
-    fontSize: 24,
-    fontWeight: '900',
-    marginRight: 6,
+    color: '#F8FAFC',
+    fontSize: 32,
+    fontWeight: '600',
+    marginRight: 8,
   },
   amountInput: {
-    flex: 1,
-    color: '#FFFFFF',
-    fontSize: 22,
-    fontWeight: '900',
+    fontSize: 40,
+    fontWeight: '700',
+    color: '#F8FAFC',
+    minWidth: 120,
   },
   quickAmountRow: {
     flexDirection: 'row',
-    gap: 8,
-    marginVertical: 10,
+    justifyContent: 'center',
+    gap: 12,
+    marginBottom: 24,
   },
   quickChip: {
     backgroundColor: '#1E293B',
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#334155',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
   },
   quickChipActive: {
-    borderColor: '#00E5FF',
-    backgroundColor: 'rgba(0, 229, 255, 0.12)',
+    backgroundColor: '#F8FAFC',
   },
   quickChipText: {
-    color: '#CBD5E1',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  estimateCard: {
-    backgroundColor: '#111827',
-    borderRadius: 12,
-    padding: 12,
-    marginVertical: 10,
-    borderWidth: 1,
-    borderColor: '#1E293B',
-  },
-  estimateLabel: {
-    color: '#64748B',
-    fontSize: 9,
-    fontWeight: '800',
-    letterSpacing: 1,
-  },
-  estimateValue: {
-    color: '#10B981',
-    fontSize: 18,
-    fontWeight: '900',
-    marginTop: 2,
-  },
-  estimateFee: {
     color: '#94A3B8',
-    fontSize: 10,
-    marginTop: 2,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  estimateBox: {
+    backgroundColor: '#1E293B',
+    padding: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  estimateText: {
+    color: '#94A3B8',
+    fontSize: 14,
+  },
+  sheetLabel: {
+    color: '#F8FAFC',
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 16,
   },
   paymentMethodCard: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#111827',
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 10,
+    padding: 16,
+    backgroundColor: '#1E293B',
+    borderRadius: 16,
+    marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#1E293B',
+    borderColor: 'transparent',
   },
   paymentMethodCardActive: {
-    backgroundColor: 'rgba(0, 229, 255, 0.05)',
-    borderColor: 'rgba(0, 229, 255, 0.3)',
+    borderColor: '#38BDF8',
+    backgroundColor: 'rgba(56, 189, 248, 0.05)',
   },
   paymentMethodLeft: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   paymentMethodTitle: {
-    color: '#F8FAFC',
-    fontSize: 13,
-    fontWeight: '700',
+    color: '#94A3B8',
+    fontSize: 15,
+    fontWeight: '500',
+    marginBottom: 4,
   },
   paymentMethodSub: {
-    color: '#94A3B8',
-    fontSize: 11,
-    marginTop: 2,
+    color: '#64748B',
+    fontSize: 13,
   },
   radioCircle: {
     width: 20,
     height: 20,
     borderRadius: 10,
     borderWidth: 2,
-    borderColor: '#334155',
-    justifyContent: 'center',
+    borderColor: '#64748B',
     alignItems: 'center',
+    justifyContent: 'center',
   },
   radioCircleActive: {
-    borderColor: '#00E5FF',
+    borderColor: '#38BDF8',
   },
   radioInner: {
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#00E5FF',
+    backgroundColor: '#38BDF8',
   },
-  payNowBtn: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#00E5FF',
-    paddingVertical: 16,
+  primaryBtn: {
+    backgroundColor: '#F8FAFC',
     borderRadius: 16,
-    shadowColor: '#00E5FF',
-    shadowOpacity: 0.4,
-    shadowRadius: 10,
-    gap: 8,
+    paddingVertical: 16,
+    alignItems: 'center',
+    marginTop: 12,
   },
-  payNowText: {
+  primaryBtnText: {
     color: '#07090E',
-    fontSize: 15,
-    fontWeight: '900',
-  },
-  addressInputBox: {
-    backgroundColor: '#1E293B',
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    marginBottom: 16,
-  },
-  addressInput: {
-    color: '#FFF',
-    fontSize: 13,
-    fontFamily: 'monospace',
+    fontSize: 16,
+    fontWeight: '600',
   },
   successStateBox: {
     alignItems: 'center',
-    paddingVertical: 30,
+    paddingVertical: 32,
   },
   successStateTitle: {
     color: '#F8FAFC',
-    fontSize: 18,
-    fontWeight: '900',
-    marginTop: 12,
+    fontSize: 20,
+    fontWeight: '600',
+    marginTop: 16,
+    marginBottom: 8,
   },
   successStateSub: {
     color: '#94A3B8',
-    fontSize: 12,
+    fontSize: 14,
     textAlign: 'center',
-    marginTop: 6,
-    paddingHorizontal: 20,
-    lineHeight: 18,
+  },
+  networkRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 24,
+  },
+  networkChip: {
+    backgroundColor: '#1E293B',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+  },
+  networkChipActive: {
+    backgroundColor: '#F8FAFC',
+  },
+  networkChipText: {
+    color: '#94A3B8',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  addressInputBox: {
+    backgroundColor: '#1E293B',
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    marginBottom: 24,
+  },
+  addressInput: {
+    color: '#F8FAFC',
+    fontSize: 15,
+    paddingVertical: 16,
   },
 });

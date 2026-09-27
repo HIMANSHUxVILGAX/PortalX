@@ -16,7 +16,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from dotenv import load_dotenv
 
-from .models import init_db, SessionLocal, GuestSession, PaymentTransaction, User, SubscriptionTier
+from .models import init_db, SessionLocal, GuestSession, PaymentTransaction, User, SubscriptionTier, PaymentCard, IdentityDocument, StoredPassword
 from .risk_scoring import score_session_risk
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -111,6 +111,9 @@ async def _auto_destroy_session(session_id: str, delay: int):
 class VaultOpenRequest(BaseModel):
     handle: str = "@user"
     pin: str = "1234"
+    device_name: Optional[str] = "Mobile Device"
+    device_brand: Optional[str] = None
+    location: Optional[str] = "Unknown Location"
 
 
 class VaultDestroyRequest(BaseModel):
@@ -210,9 +213,17 @@ async def get_vault_history(db: Session = Depends(get_db)):
     for s in sessions:
         history.append({
             "session_id": s.session_id,
+            "room_id": s.session_id,
+            "device_name": s.device_name or "Mobile Device",
+            "device_brand": s.device_brand,
+            "location": s.location or "Unknown Location",
             "created_at": s.created_at.isoformat() if s.created_at else None,
+            "date": s.created_at.strftime("%d %b, %I:%M %p") if s.created_at else "Recent",
+            "duration_seconds": s.duration_seconds or 0,
+            "bytes_zeroized": s.bytes_zeroized or 0,
             "risk_score": s.risk_score,
-            "is_active": s.is_active
+            "is_active": s.is_active,
+            "status": "ACTIVE" if s.is_active else "SHREDDED"
         })
     return JSONResponse(history)
 
@@ -233,6 +244,100 @@ async def get_transactions(db: Session = Depends(get_db)):
             "timestamp": tx.timestamp.isoformat() if tx.timestamp else None
         })
     return JSONResponse(transactions)
+
+
+@app.get("/api/cards")
+async def get_cards(db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.handle == "@rahul").first()
+    if not user:
+        return JSONResponse([])
+
+    cards = db.query(PaymentCard).filter(PaymentCard.user_id == user.id).all()
+    res = []
+    for c in cards:
+        res.append({
+            "id": str(c.id),
+            "bank": c.bank,
+            "network": c.network,
+            "balance": c.balance,
+            "maskedNumber": c.masked_number,
+            "expires": c.expires,
+            "backgroundColor": c.background_color,
+            "badge": c.badge
+        })
+    return JSONResponse(res)
+
+
+@app.get("/api/docs")
+async def get_docs(db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.handle == "@rahul").first()
+    if not user:
+        return JSONResponse([])
+
+    docs = db.query(IdentityDocument).filter(
+        IdentityDocument.user_id == user.id).all()
+    res = []
+    for d in docs:
+        res.append({
+            "id": str(d.id),
+            "title": d.title,
+            "subtitle": d.subtitle,
+            "icon": d.icon,
+            "verified": d.verified,
+            "source": d.source
+        })
+    return JSONResponse(res)
+
+
+class CardCreateRequest(BaseModel):
+    bank: str
+    network: str
+    balance: float
+    maskedNumber: str
+    expires: str
+    backgroundColor: str
+    badge: str
+
+
+@app.post("/api/cards")
+async def add_card(req: CardCreateRequest, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.handle == "@rahul").first()
+    new_card = PaymentCard(
+        user_id=user.id if user else 1,
+        bank=req.bank,
+        network=req.network,
+        balance=req.balance,
+        masked_number=req.maskedNumber,
+        expires=req.expires,
+        background_color=req.backgroundColor,
+        badge=req.badge
+    )
+    db.add(new_card)
+    db.commit()
+    return JSONResponse({"status": "success", "id": str(new_card.id)})
+
+
+class DocCreateRequest(BaseModel):
+    title: str
+    subtitle: str
+    icon: str
+    source: str
+
+
+@app.post("/api/docs")
+async def add_doc(req: DocCreateRequest, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.handle == "@rahul").first()
+    new_doc = IdentityDocument(
+        user_id=user.id if user else 1,
+        title=req.title,
+        subtitle=req.subtitle,
+        icon=req.icon,
+        verified=True,
+        source=req.source
+    )
+    db.add(new_doc)
+    db.commit()
+    return JSONResponse({"status": "success", "id": str(new_doc.id)})
 
 
 @app.post("/api/risk/score")
@@ -266,8 +371,11 @@ async def vault_open(req: VaultOpenRequest, db: Session = Depends(get_db)):
 
     # Generate the crypto UIT token
     session_data = generate_uit(user_seed, host_device_id, session_ttl=ttl)
-    sensitive_data = bytearray(
-        b"CONFIDENTIAL_SESSION_DATA_AADHAAR_UPI_KEYS_" + os.urandom(64))
+    # Dynamic volatile enclave buffer (dynamic memory allocation for session state + crypto buffers)
+    base_payload = f"PORTELX_ENCLAVE_{session_id}_{req.handle}_{user_seed}_{time.time()}".encode()
+    # Dynamic chunk size between 64KB and 192KB varying on each session
+    dynamic_entropy_size = 65536 + (os.urandom(2)[0] * 512)
+    sensitive_data = bytearray(base_payload + os.urandom(dynamic_entropy_size))
 
     # Store session in memory for zeroization
     SESSIONS[session_id] = {
@@ -298,7 +406,10 @@ async def vault_open(req: VaultOpenRequest, db: Session = Depends(get_db)):
         user_id=user_id,
         expires_at=datetime.datetime.fromtimestamp(
             session_data["expires_at"], tz=datetime.timezone.utc),
-        risk_score=risk_assessment.get("risk_score", 0.0)
+        risk_score=risk_assessment.get("risk_score", 0.0),
+        device_name=req.device_name,
+        device_brand=req.device_brand,
+        location=req.location
     )
     db.add(new_session)
     db.commit()
@@ -370,7 +481,7 @@ async def vault_pay(req: PayRequest, db: Session = Depends(get_db)):
 
 
 @app.post("/api/vault/destroy")
-async def vault_destroy(req: VaultDestroyRequest):
+async def vault_destroy(req: VaultDestroyRequest, db: Session = Depends(get_db)):
     session_id = req.session_id if req else None
 
     if not session_id or session_id not in SESSIONS:
@@ -382,6 +493,21 @@ async def vault_destroy(req: VaultDestroyRequest):
     bytes_to_wipe = len(sensitive_data)
     wipe_latency_ms = zeroize_buffer(sensitive_data)
     is_wiped = all(b == 0 for b in sensitive_data)
+
+    db_session = db.query(GuestSession).filter(GuestSession.session_id == session_id).first()
+    if db_session:
+        db_session.is_active = False
+        now_utc = datetime.datetime.now(datetime.timezone.utc)
+        db_session.destroyed_at = now_utc
+        if db_session.created_at:
+            # Handle tz-naive or tz-aware
+            c_at = db_session.created_at
+            if c_at.tzinfo is None:
+                c_at = c_at.replace(tzinfo=datetime.timezone.utc)
+            delta = (now_utc - c_at).total_seconds()
+            db_session.duration_seconds = max(1, int(delta))
+        db_session.bytes_zeroized = bytes_to_wipe
+        db.commit()
 
     return JSONResponse({
         "status": "destroyed",
@@ -446,3 +572,61 @@ async def terminate_test_session(req: TerminateRequest):
         "bytesZeroized": bytes_to_wipe,
         "reason": req.reason,
     })
+
+
+class PasswordCreateRequest(BaseModel):
+    service: str
+    username: str
+    password: str
+
+@app.get("/api/passwords")
+async def get_passwords(db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.handle == "@rahul").first()
+    if not user:
+        return JSONResponse([])
+    
+    passwords = db.query(StoredPassword).filter(StoredPassword.user_id == user.id).all()
+    res = []
+    for p in passwords:
+        res.append({
+            "id": p.id,
+            "service": p.service,
+            "username": p.username,
+            "password": p.password
+        })
+    return JSONResponse(res)
+
+@app.post("/api/passwords")
+async def add_password(req: PasswordCreateRequest, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.handle == "@rahul").first()
+    if not user:
+        return JSONResponse({"status": "error", "message": "User not found"}, status_code=404)
+        
+    new_password = StoredPassword(
+        user_id=user.id,
+        service=req.service,
+        username=req.username,
+        password=req.password
+    )
+    db.add(new_password)
+    db.commit()
+    db.refresh(new_password)
+    
+    return JSONResponse({
+        "status": "success",
+        "password": {
+            "id": new_password.id,
+            "service": new_password.service,
+            "username": new_password.username,
+            "password": new_password.password
+        }
+    })
+
+@app.delete("/api/passwords/{id}")
+async def delete_password(id: int, db: Session = Depends(get_db)):
+    password = db.query(StoredPassword).filter(StoredPassword.id == id).first()
+    if password:
+        db.delete(password)
+        db.commit()
+        return JSONResponse({"status": "success"})
+    return JSONResponse({"status": "error", "message": "Not found"}, status_code=404)

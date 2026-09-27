@@ -1,167 +1,158 @@
-import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Animated, SafeAreaView } from 'react-native';
+import React from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Pressable, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppStore } from '../src/store/useAppStore';
 
 export default function SubscriptionScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { subscription } = useAppStore();
 
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(40)).current;
-
-  useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 500,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 500,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, []);
-
-  const renderCard = (
-    title: string,
-    price: string,
-    features: string[],
-    isPremium: boolean,
-    isBundle: boolean,
-    tierId: string
-  ) => {
-    const isActive = subscription?.tier === tierId;
-
-    let borderColor = '#334155';
-    let badge = null;
-
-    if (isPremium) {
-      borderColor = '#00E5FF';
-      badge = 'MOST POPULAR';
-    }
-    if (isBundle) {
-      borderColor = '#F59E0B';
-      badge = 'BEST VALUE';
-    }
-
-    return (
-      <View style={[styles.card, { borderColor }]}>
-        {badge && (
-          <View style={[styles.badgeContainer, { backgroundColor: borderColor }]}>
-            <Text style={[styles.badgeText, isBundle && { color: '#07090E' }]}>{badge}</Text>
-          </View>
-        )}
-        
-        <View style={styles.cardHeader}>
-          <Text style={styles.planTitle}>{title}</Text>
-          {isActive && (
-            <View style={styles.activePill}>
-              <Text style={styles.activePillText}>Current Plan</Text>
-            </View>
-          )}
-        </View>
-
-        <Text style={styles.price}>{price}</Text>
-
-        <View style={styles.featuresList}>
-          {features.map((ft, idx) => (
-            <View key={idx} style={styles.featureRow}>
-              <Ionicons name="checkmark-circle" size={20} color={isBundle ? '#F59E0B' : isPremium ? '#00E5FF' : '#94A3B8'} />
-              <Text style={styles.featureText}>{ft}</Text>
-            </View>
-          ))}
-        </View>
-
-        <TouchableOpacity 
-          style={[
-            styles.subscribeBtn, 
-            isActive && styles.subscribeBtnActive,
-            isBundle && !isActive && { backgroundColor: '#F59E0B' }
-          ]}
-          activeOpacity={0.8}
-        >
-          <Text style={[
-            styles.subscribeBtnText, 
-            isBundle && !isActive && { color: '#07090E' },
-            isActive && { color: '#CBD5E1' }
-          ]}>
-            {isActive ? 'Current Plan' : 'Subscribe'}
-          </Text>
-        </TouchableOpacity>
-      </View>
-    );
+  const handleBack = () => {
+    router.back();
   };
 
+  const handleRestore = () => {
+    // Restore logic
+  };
+
+  const handleSelectPlan = (tier: string) => {
+    // Select logic
+  };
+
+  const currentTier = subscription?.tier || 'premium';
+
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <View style={[styles.container, { paddingTop: Math.max(insets.top, 20) }]}>
+      {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="chevron-back" size={28} color="#00E5FF" />
+        <TouchableOpacity style={styles.backButton} onPress={handleBack} hitSlop={15}>
+          <Ionicons name="arrow-back" size={24} color="#F8FAFC" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>PORTELX PLANS</Text>
+        <Text style={styles.headerTitle}>PortelX Premium</Text>
         <View style={{ width: 40 }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+        
+        {/* Hero Section */}
+        <View style={styles.heroCard}>
+          <View style={styles.heroHeader}>
+            <View style={styles.heroTitleRow}>
+              <MaterialCommunityIcons name="shield-check" size={24} color="#00E5FF" />
+              <Text style={styles.heroTitle}>{subscription?.name || 'Premium'}</Text>
+            </View>
+            <View style={styles.activeBadge}>
+              <View style={styles.activeDot} />
+              <Text style={styles.activeText}>Active</Text>
+            </View>
+          </View>
           
-          {renderCard(
-            'Free Tier',
-            '₹0/month',
-            [
-              '3 guest sessions/month',
-              'Basic AI risk scoring',
-              'Standard encryption'
-            ],
-            false,
-            false,
-            'free'
-          )}
+          <Text style={styles.renewalText}>Renews Dec 2026</Text>
+          
+          <View style={styles.heroFooter}>
+            <Text style={styles.managedText}>Managed by RevenueCat</Text>
+          </View>
+        </View>
 
-          {renderCard(
-            'Premium',
-            '₹499/month',
-            [
-              'Unlimited guest sessions',
-              'Priority AI risk scoring',
-              'Real-time FCM alerts',
-              'Sovereign doc streaming'
-            ],
-            true,
-            false,
-            'premium'
-          )}
+        <Text style={styles.sectionTitle}>Available Plans</Text>
 
-          {renderCard(
-            'Bundle',
-            '₹999/month',
-            [
-              'Everything in Premium',
-              'Enterprise fleet management',
-              'SIEM log integration',
-              'Dedicated 24/7 support'
-            ],
-            false,
-            true,
-            'bundle'
+        {/* Free Plan */}
+        <Pressable 
+          style={[styles.planCard, currentTier === 'free' && styles.activePlanCard]}
+          onPress={() => handleSelectPlan('free')}
+        >
+          <View style={styles.planHeader}>
+            <Text style={styles.planName}>Basic</Text>
+            <Text style={styles.planPrice}>Free</Text>
+          </View>
+          {currentTier === 'free' && (
+            <View style={styles.currentBadge}>
+              <Text style={styles.currentBadgeText}>CURRENT PLAN</Text>
+            </View>
           )}
+          <View style={styles.featureList}>
+            <FeatureItem text="Basic verification" />
+            <FeatureItem text="Standard support" />
+            <FeatureItem text="Limited checks" />
+          </View>
+        </Pressable>
 
-          <TouchableOpacity style={styles.restoreBtn}>
-            <Text style={styles.restoreText}>Restore Purchases</Text>
+        {/* Premium Plan */}
+        <Pressable 
+          style={[styles.planCard, styles.premiumCard, currentTier === 'premium' && styles.activePlanCard]}
+          onPress={() => handleSelectPlan('premium')}
+        >
+          <View style={styles.planHeader}>
+            <Text style={[styles.planName, { color: '#00E5FF' }]}>Premium</Text>
+            <Text style={styles.planPrice}>$9.99<Text style={styles.pricePeriod}>/mo</Text></Text>
+          </View>
+          {currentTier === 'premium' && (
+            <View style={styles.currentBadgeAccent}>
+              <Text style={styles.currentBadgeTextAccent}>CURRENT PLAN</Text>
+            </View>
+          )}
+          <View style={styles.featureList}>
+            <FeatureItem text="Advanced identity verification" color="#00E5FF" />
+            <FeatureItem text="Priority support 24/7" color="#00E5FF" />
+            <FeatureItem text="Unlimited checks" color="#00E5FF" />
+            <FeatureItem text="Detailed activity reports" color="#00E5FF" />
+          </View>
+        </Pressable>
+
+        {/* Enterprise Plan */}
+        <Pressable 
+          style={[styles.planCard, styles.enterpriseCard, currentTier === 'enterprise' && styles.activePlanCard]}
+          onPress={() => handleSelectPlan('enterprise')}
+        >
+          <View style={styles.bestValueBadge}>
+            <Text style={styles.bestValueText}>BEST VALUE</Text>
+          </View>
+          <View style={styles.planHeader}>
+            <Text style={[styles.planName, { color: '#F59E0B' }]}>Enterprise</Text>
+            <Text style={styles.planPrice}>$29.99<Text style={styles.pricePeriod}>/mo</Text></Text>
+          </View>
+          {currentTier === 'enterprise' && (
+            <View style={styles.currentBadgeGold}>
+              <Text style={styles.currentBadgeTextGold}>CURRENT PLAN</Text>
+            </View>
+          )}
+          <View style={styles.featureList}>
+            <FeatureItem text="Everything in Premium" color="#F59E0B" />
+            <FeatureItem text="Dedicated account manager" color="#F59E0B" />
+            <FeatureItem text="API access & webhooks" color="#F59E0B" />
+            <FeatureItem text="Custom compliance rules" color="#F59E0B" />
+          </View>
+        </Pressable>
+
+        {/* Bottom Links */}
+        <View style={styles.footerLinks}>
+          <TouchableOpacity onPress={handleRestore}>
+            <Text style={styles.linkText}>Restore Purchases</Text>
           </TouchableOpacity>
+          <View style={styles.dot} />
+          <TouchableOpacity>
+            <Text style={styles.linkText}>Terms & Conditions</Text>
+          </TouchableOpacity>
+        </View>
 
-        </Animated.View>
+        <View style={{ height: 40 }} />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
+const FeatureItem = ({ text, color = '#64748B' }: { text: string, color?: string }) => (
+  <View style={styles.featureItem}>
+    <Ionicons name="checkmark-circle" size={20} color={color} style={styles.featureIcon} />
+    <Text style={styles.featureText}>{text}</Text>
+  </View>
+);
+
 const styles = StyleSheet.create({
-  safeArea: {
+  container: {
     flex: 1,
     backgroundColor: '#07090E',
   },
@@ -169,114 +160,225 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingHorizontal: 20,
+    paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#1E293B',
   },
-  backBtn: {
-    padding: 4,
+  backButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
   },
   headerTitle: {
-    fontSize: 16,
-    fontWeight: '800',
+    fontSize: 18,
+    fontWeight: '700',
     color: '#F8FAFC',
-    letterSpacing: 1,
+    letterSpacing: 0.5,
   },
   scrollContent: {
     padding: 20,
-    paddingBottom: 40,
   },
-  card: {
+  heroCard: {
     backgroundColor: '#0F172A',
-    borderRadius: 20,
-    padding: 24,
-    borderWidth: 2,
-    marginBottom: 24,
-    position: 'relative',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 32,
+    borderWidth: 1,
+    borderColor: '#1E293B',
+    shadowColor: '#00E5FF',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 5,
   },
-  badgeContainer: {
-    position: 'absolute',
-    top: -12,
-    alignSelf: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-    zIndex: 10,
-  },
-  badgeText: {
-    fontSize: 10,
-    fontWeight: '900',
-    color: '#07090E',
-    letterSpacing: 1,
-  },
-  cardHeader: {
+  heroHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
   },
-  planTitle: {
+  heroTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  heroTitle: {
     fontSize: 22,
+    fontWeight: '700',
+    color: '#F8FAFC',
+  },
+  activeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 6,
+  },
+  activeDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#10B981',
+  },
+  activeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#10B981',
+  },
+  renewalText: {
+    fontSize: 14,
+    color: '#94A3B8',
+    marginBottom: 20,
+  },
+  heroFooter: {
+    borderTopWidth: 1,
+    borderTopColor: '#1E293B',
+    paddingTop: 12,
+  },
+  managedText: {
+    fontSize: 12,
+    color: '#64748B',
+    textAlign: 'center',
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#F8FAFC',
+    marginBottom: 16,
+  },
+  planCard: {
+    backgroundColor: '#0F172A',
+    borderRadius: 16,
+    padding: 24,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#1E293B',
+  },
+  premiumCard: {
+    borderColor: '#00E5FF',
+    backgroundColor: '#0A1224',
+  },
+  enterpriseCard: {
+    borderColor: '#F59E0B',
+    backgroundColor: '#121008',
+    marginTop: 8, // Space for best value badge
+  },
+  activePlanCard: {
+    borderWidth: 2,
+  },
+  bestValueBadge: {
+    position: 'absolute',
+    top: -12,
+    right: 24,
+    backgroundColor: '#F59E0B',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  bestValueText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#000',
+    letterSpacing: 0.5,
+  },
+  planHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    marginBottom: 16,
+  },
+  planName: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#F8FAFC',
+  },
+  planPrice: {
+    fontSize: 24,
     fontWeight: '800',
     color: '#F8FAFC',
   },
-  activePill: {
-    backgroundColor: 'rgba(52, 199, 89, 0.2)',
+  pricePeriod: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#94A3B8',
+  },
+  currentBadge: {
+    backgroundColor: '#1E293B',
+    alignSelf: 'flex-start',
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#34C759',
+    borderRadius: 6,
+    marginBottom: 16,
   },
-  activePillText: {
-    fontSize: 12,
+  currentBadgeText: {
+    fontSize: 10,
     fontWeight: '700',
-    color: '#34C759',
+    color: '#94A3B8',
+    letterSpacing: 0.5,
   },
-  price: {
-    fontSize: 28,
-    fontWeight: '900',
-    color: '#F8FAFC',
-    marginBottom: 24,
+  currentBadgeAccent: {
+    backgroundColor: 'rgba(0, 229, 255, 0.15)',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+    marginBottom: 16,
   },
-  featuresList: {
+  currentBadgeTextAccent: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#00E5FF',
+    letterSpacing: 0.5,
+  },
+  currentBadgeGold: {
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+    marginBottom: 16,
+  },
+  currentBadgeTextGold: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#F59E0B',
+    letterSpacing: 0.5,
+  },
+  featureList: {
     gap: 12,
-    marginBottom: 32,
   },
-  featureRow: {
+  featureItem: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 12,
+  },
+  featureIcon: {
+    marginTop: 2,
   },
   featureText: {
     fontSize: 15,
     color: '#CBD5E1',
-    marginLeft: 12,
-    fontWeight: '500',
+    flex: 1,
   },
-  subscribeBtn: {
-    backgroundColor: '#00E5FF',
-    borderRadius: 12,
-    paddingVertical: 16,
+  footerLinks: {
+    flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
+    marginTop: 24,
+    gap: 16,
   },
-  subscribeBtnActive: {
-    backgroundColor: '#1E293B',
-    borderWidth: 1,
-    borderColor: '#334155',
-  },
-  subscribeBtnText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#07090E',
-  },
-  restoreBtn: {
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  restoreText: {
+  linkText: {
     fontSize: 14,
-    color: '#64748B',
-    fontWeight: '600',
+    color: '#94A3B8',
+    textDecorationLine: 'underline',
+  },
+  dot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#475569',
   },
 });

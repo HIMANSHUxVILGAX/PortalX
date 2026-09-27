@@ -12,18 +12,39 @@ import { useRouter } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
 import { useSessionStore } from '../src/store/useSessionStore';
 import { API_BASE_URL } from '../src/constants/config';
+import * as Device from 'expo-device';
+import * as Location from 'expo-location';
 
 export default function PortelXDashboard() {
   const router = useRouter();
   const { guestName, guestHandle, guestPhone, history, fetchHistory } = useSessionStore();
 
-  // Selected Guest Plan: 'basic' | 'premium' | 'bundle'
-  const [selectedPlan, setSelectedPlan] = useState<'basic' | 'premium' | 'bundle'>('premium');
-
   // Animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  const [detectedLocation, setDetectedLocation] = useState('Local Device (India)');
+  const detectedDevice = Device.modelName || Device.deviceName || 'Android Device';
+
+  useEffect(() => {
+    (async () => {
+      try {
+        let { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          return;
+        }
+        let location = await Location.getCurrentPositionAsync({});
+        let geocode = await Location.reverseGeocodeAsync({ latitude: location.coords.latitude, longitude: location.coords.longitude });
+        if (geocode.length > 0) {
+          const addr = geocode[0];
+          setDetectedLocation(`${addr.city || addr.subregion || addr.region}, ${addr.region || addr.country}`);
+        }
+      } catch (e) {
+        console.log('Location error:', e);
+      }
+    })();
+  }, []);
 
   useEffect(() => {
     fetchHistory();
@@ -58,47 +79,17 @@ export default function PortelXDashboard() {
     ).start();
   }, []);
 
-  // Previous guest rooms dispatched to the guest's personal phone
-  const FALLBACK_ROOMS = [
-    {
-      room_id: 'RM-9842-DEL',
-      device_name: 'Samsung Galaxy S24 Ultra',
-      location: 'IGI Airport T3, New Delhi',
-      created_at: 'Today, 2:15 PM',
-      duration_seconds: 252,
-      status: 'SHREDDED',
-      bytes_zeroized: 0,
-    },
-    {
-      room_id: 'RM-8172-BLR',
-      device_name: 'OnePlus 12',
-      location: 'Indiranagar, Bengaluru',
-      created_at: '15 Sep, 7:40 PM',
-      duration_seconds: 510,
-      status: 'SHREDDED',
-      bytes_zeroized: 0,
-    },
-    {
-      room_id: 'RM-6319-MUM',
-      device_name: 'iPhone 15 Pro Max',
-      location: 'BKC, Mumbai',
-      created_at: '12 Sep, 11:20 AM',
-      duration_seconds: 225,
-      status: 'SHREDDED',
-      bytes_zeroized: 0,
-    },
-    {
-      room_id: 'RM-5104-JPR',
-      device_name: 'Google Pixel 8 Pro',
-      location: 'Malviya Nagar, Jaipur',
-      created_at: '08 Sep, 5:10 PM',
-      duration_seconds: 842,
-      status: 'SHREDDED',
-      bytes_zeroized: 0,
-    },
-  ];
-
-  const rooms = history && history.length > 0 ? history : FALLBACK_ROOMS;
+  const displayRooms = history && history.length > 0
+    ? history.map((room, index) => {
+        if (index === 0) {
+          return {
+            ...room,
+            device_name: Device.modelName || room.device_name || 'Unknown Device',
+          };
+        }
+        return room;
+      })
+    : [];
 
   const formatDuration = (seconds: number) => {
     const m = Math.floor(seconds / 60);
@@ -107,6 +98,7 @@ export default function PortelXDashboard() {
   };
 
   const handlePanicRevoke = async (roomId: string) => {
+    if (roomId === 'N/A') return;
     try {
       await fetch(API_BASE_URL + '/api/vault/remote-kill', {
         method: 'POST',
@@ -165,89 +157,29 @@ export default function PortelXDashboard() {
         <View style={styles.section}>
           <View style={styles.sectionHeaderRow}>
             <Text style={styles.sectionTitle}>YOUR PORTELX PLAN & QUOTA</Text>
-            <View style={styles.catBadge}>
-              <Text style={styles.catBadgeText}>RevenueCat Sync</Text>
-            </View>
           </View>
           <Text style={styles.sectionSubtitle}>
             Quota applied from your personal PortelX account, not the host device.
           </Text>
 
-          {/* 3 PLAN TIERS */}
-          <View style={styles.plansContainer}>
-            {/* TIER 1: BASIC (FREE) */}
-            <TouchableOpacity
-              style={[
-                styles.planCard,
-                selectedPlan === 'basic' && styles.planCardActive,
-              ]}
-              onPress={() => setSelectedPlan('basic')}
-              activeOpacity={0.8}
-            >
-              <View style={styles.planCardHeader}>
-                <Text style={styles.planName}>Basic Free</Text>
-                {selectedPlan === 'basic' && <Ionicons name="checkmark-circle" size={18} color="#00E5FF" />}
+          <View style={styles.premiumBanner}>
+            <View style={styles.premiumBannerHeader}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Ionicons name="star" size={16} color="#00E5FF" style={{ marginRight: 6 }} />
+                <Text style={styles.premiumBannerTitle}>Premium Plan Active</Text>
               </View>
-              <Text style={styles.planLimit}>1 Action</Text>
-              <Text style={styles.planDesc}>1 Payment OR 1 Doc View allowed</Text>
-              <Text style={styles.planPrice}>₹0 / Free</Text>
-            </TouchableOpacity>
-
-            {/* TIER 2: PREMIUM (10 Actions) */}
-            <TouchableOpacity
-              style={[
-                styles.planCard,
-                styles.planCardPremium,
-                selectedPlan === 'premium' && styles.planCardActivePremium,
-              ]}
-              onPress={() => setSelectedPlan('premium')}
-              activeOpacity={0.8}
-            >
-              <View style={styles.popularBadge}>
-                <Text style={styles.popularBadgeText}>POPULAR</Text>
+              <View style={styles.revenueCatBadge}>
+                <Text style={styles.revenueCatText}>RevenueCat</Text>
               </View>
-              <View style={styles.planCardHeader}>
-                <Text style={[styles.planName, { color: '#00E5FF' }]}>Premium</Text>
-                {selectedPlan === 'premium' && <Ionicons name="checkmark-circle" size={18} color="#00E5FF" />}
+            </View>
+            
+            <View style={styles.progressContainer}>
+              <View style={styles.progressHeader}>
+                <Text style={styles.progressText}>7 of 10 sessions remaining</Text>
               </View>
-              <Text style={[styles.planLimit, { color: '#FFF' }]}>10 Actions</Text>
-              <Text style={styles.planDesc}>10 Payments & Sovereign Doc Views</Text>
-              <Text style={[styles.planPrice, { color: '#00E5FF' }]}>₹199 / mo</Text>
-            </TouchableOpacity>
-
-            {/* TIER 3: BUNDLE / UNLIMITED */}
-            <TouchableOpacity
-              style={[
-                styles.planCard,
-                selectedPlan === 'bundle' && styles.planCardActive,
-              ]}
-              onPress={() => setSelectedPlan('bundle')}
-              activeOpacity={0.8}
-            >
-              <View style={styles.planCardHeader}>
-                <Text style={styles.planName}>Unlimited</Text>
-                {selectedPlan === 'bundle' && <Ionicons name="checkmark-circle" size={18} color="#00E5FF" />}
+              <View style={styles.progressBarBg}>
+                <View style={[styles.progressBarFill, { width: '70%' }]} />
               </View>
-              <Text style={styles.planLimit}>∞</Text>
-              <Text style={styles.planDesc}>Unlimited Zero-Knowledge Access</Text>
-              <Text style={styles.planPrice}>₹499 / mo</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* ACTIVE QUOTA BANNER */}
-          <View style={styles.quotaBanner}>
-            <MaterialCommunityIcons name="lightning-bolt" size={20} color="#F59E0B" />
-            <View style={{ marginLeft: 10, flex: 1 }}>
-              <Text style={styles.quotaTitle}>
-                {selectedPlan === 'basic'
-                  ? 'Basic Quota: 1 Action Active'
-                  : selectedPlan === 'premium'
-                    ? 'Premium Quota: 10 Actions Active'
-                    : 'Bundle Quota: Unlimited Actions Active'}
-              </Text>
-              <Text style={styles.quotaDesc}>
-                Will burn from guest account. Host has zero financial liability.
-              </Text>
             </View>
           </View>
         </View>
@@ -265,7 +197,14 @@ export default function PortelXDashboard() {
           </Text>
 
           <View style={styles.roomsList}>
-            {rooms.map((room, index) => {
+            {displayRooms.length === 0 ? (
+              <View style={styles.roomItem}>
+                <Text style={{ color: '#94A3B8', textAlign: 'center', fontSize: 13 }}>
+                  No previous guest sessions recorded
+                </Text>
+              </View>
+            ) : (
+              displayRooms.map((room, index) => {
               const isActive = room.is_active || room.status === 'active' || room.status === 'ACTIVE';
 
               return (
@@ -284,8 +223,8 @@ export default function PortelXDashboard() {
                     </TouchableOpacity>
                   ) : (
                     <View style={styles.shreddedBadge}>
-                      <Ionicons name="trash-bin" size={12} color="#10B981" style={{ marginRight: 4 }} />
-                      <Text style={styles.shreddedText}>{room.status} • 0x00</Text>
+                      <Ionicons name={room.room_id === 'N/A' ? 'information-circle' : 'trash-bin'} size={12} color="#10B981" style={{ marginRight: 4 }} />
+                      <Text style={styles.shreddedText}>{room.status}{room.room_id !== 'N/A' && ' • 0x00'}</Text>
                     </View>
                   )}
                 </View>
@@ -300,12 +239,14 @@ export default function PortelXDashboard() {
                   <Text style={styles.roomLocationText}>{room.location}</Text>
                 </View>
 
-                <View style={styles.roomFooter}>
-                  <Text style={styles.roomMetaText}>⏱️ {formatDuration(room.duration_seconds || (room.duration ? parseInt(room.duration) * 60 : 0))} • {new Date(room.created_at || room.date).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' })}</Text>
-                  <Text style={styles.roomDispatchText}>Key sent via SMS</Text>
-                </View>
+                {room.room_id !== 'N/A' && (
+                  <View style={styles.roomFooter}>
+                    <Text style={styles.roomMetaText}>⏱️ {formatDuration(room.duration_seconds || (room.duration ? parseInt(room.duration) * 60 : 0))} • {new Date(room.created_at || room.date).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' })}</Text>
+                    <Text style={styles.roomDispatchText}>Key sent via SMS</Text>
+                  </View>
+                )}
               </View>
-            )})}
+            )}))}
           </View>
         </View>
       </Animated.ScrollView>
@@ -315,7 +256,15 @@ export default function PortelXDashboard() {
         <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
           <TouchableOpacity
             style={styles.launchBtn}
-            onPress={() => router.push('/portelx_vault')}
+            onPress={async () => {
+              const { openVault } = useSessionStore.getState();
+              await openVault('@guest', '1234', {
+                device_name: detectedDevice,
+                device_brand: Device.brand || '',
+                location: detectedLocation
+              });
+              router.push('/portelx_vault');
+            }}
             activeOpacity={0.85}
           >
             <FontAwesome5 name="lock-open" size={18} color="#07090E" style={{ marginRight: 10 }} />
@@ -444,17 +393,6 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: 1,
   },
-  catBadge: {
-    backgroundColor: 'rgba(245, 158, 11, 0.15)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  catBadgeText: {
-    color: '#F59E0B',
-    fontSize: 10,
-    fontWeight: '700',
-  },
   sectionSubtitle: {
     color: '#64748B',
     fontSize: 12,
@@ -462,95 +400,58 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
 
-  plansContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 8,
-  },
-  planCard: {
-    flex: 1,
+  premiumBanner: {
     backgroundColor: '#0F172A',
     borderRadius: 14,
-    padding: 12,
+    padding: 16,
     borderWidth: 1,
-    borderColor: '#1E293B',
-    position: 'relative',
+    borderColor: 'rgba(0, 229, 255, 0.3)',
   },
-  planCardActive: {
-    borderColor: '#00E5FF',
-    backgroundColor: '#132338',
-  },
-  planCardPremium: {
-    borderColor: 'rgba(0, 229, 255, 0.4)',
-  },
-  planCardActivePremium: {
-    borderColor: '#00E5FF',
-    backgroundColor: '#0E293D',
-    borderWidth: 2,
-  },
-  popularBadge: {
-    position: 'absolute',
-    top: -8,
-    alignSelf: 'center',
-    backgroundColor: '#00E5FF',
-    paddingHorizontal: 6,
-    paddingVertical: 1,
-    borderRadius: 4,
-  },
-  popularBadgeText: {
-    color: '#07090E',
-    fontSize: 8,
-    fontWeight: '900',
-  },
-  planCardHeader: {
+  premiumBannerHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 6,
+    marginBottom: 16,
   },
-  planName: {
-    color: '#CBD5E1',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  planLimit: {
-    color: '#F8FAFC',
+  premiumBannerTitle: {
+    color: '#00E5FF',
     fontSize: 16,
     fontWeight: '800',
-    marginBottom: 4,
   },
-  planDesc: {
-    color: '#64748B',
+  revenueCatBadge: {
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  revenueCatText: {
+    color: '#F59E0B',
     fontSize: 10,
-    lineHeight: 13,
+    fontWeight: '700',
+  },
+  progressContainer: {
+    marginTop: 4,
+  },
+  progressHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     marginBottom: 8,
   },
-  planPrice: {
-    color: '#94A3B8',
-    fontSize: 11,
-    fontWeight: '700',
-    fontFamily: 'monospace',
+  progressText: {
+    color: '#F8FAFC',
+    fontSize: 12,
+    fontWeight: '600',
   },
-
-  quotaBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(245, 158, 11, 0.08)',
-    borderRadius: 12,
-    padding: 12,
-    marginTop: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.25)',
+  progressBarBg: {
+    height: 6,
+    backgroundColor: '#1E293B',
+    borderRadius: 3,
+    width: '100%',
   },
-  quotaTitle: {
-    color: '#F59E0B',
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  quotaDesc: {
-    color: '#94A3B8',
-    fontSize: 11,
-    marginTop: 2,
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: '#00E5FF',
+    borderRadius: 3,
   },
 
   searchIconBtn: {

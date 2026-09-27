@@ -15,7 +15,7 @@ export interface UserProfile {
 }
 
 // ─── Subscription / RevenueCat ───────────────────────────────
-export type SubscriptionTier = 'free' | 'premium' | 'bundle';
+export type SubscriptionTier = 'free' | 'premium' | 'bundle' | 'enterprise';
 
 export interface SubscriptionPlan {
   tier: SubscriptionTier;
@@ -101,12 +101,23 @@ export interface RiskAssessment {
 
 // ─── Vault History ───────────────────────────────────────────
 export interface VaultHistoryEntry {
-  id: string;
-  vaultId: string;           // "VLT-9F2X"
-  duration: string;          // "12m 34s"
-  date: string;
-  status: 'shredded' | 'expired' | 'active';
-  riskScore: number;
+  id?: string;
+  session_id?: string;
+  room_id?: string;
+  vaultId?: string;           // "VLT-9F2X"
+  device_name?: string;
+  device_brand?: string | null;
+  device?: string;
+  location?: string;
+  duration?: string;          // "12m 34s"
+  duration_seconds?: number;
+  bytes_zeroized?: number;
+  date?: string;
+  created_at?: string;
+  status: 'shredded' | 'expired' | 'active' | 'SHREDDED' | 'ACTIVE' | string;
+  is_active?: boolean;
+  risk_score?: number;
+  riskScore?: number;
 }
 
 // ─── Payment (QR Scan) ──────────────────────────────────────

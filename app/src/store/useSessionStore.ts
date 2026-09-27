@@ -20,7 +20,7 @@ export interface SessionState {
   history: VaultHistoryEntry[];
 
   // ─── Actions ────────────────────────────────────
-  openVault: (handle?: string, pin?: string) => Promise<VaultSession | null>;
+  openVault: (handle?: string, pin?: string, deviceInfo?: { device_name?: string; device_brand?: string; location?: string }) => Promise<VaultSession | null>;
   destroyVault: () => Promise<{ wipeLatencyMs: number; bytesZeroized: number } | null>;
   setTimeLeft: (t: number) => void;
   tick: () => void;
@@ -37,9 +37,9 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   guestPhone: '',
   history: [],
 
-  openVault: async (handle = '@guest', pin = '1234') => {
+  openVault: async (handle = '@guest', pin = '1234', deviceInfo?: { device_name?: string; device_brand?: string; location?: string }) => {
     try {
-      const data = await api.openVault(handle, pin);
+      const data = await api.openVault(handle, pin, deviceInfo);
       const session: VaultSession = {
         sessionId: data.session_id,
         uit: data.uit,
