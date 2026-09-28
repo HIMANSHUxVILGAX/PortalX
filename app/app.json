@@ -31,7 +31,9 @@
       "package": "com.portelx.app",
       "permissions": [
         "android.permission.CAMERA",
-        "android.permission.USE_BIOMETRIC"
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT",
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "plugins": [
@@ -51,6 +53,12 @@
         }
       ],
       "expo-asset"
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "2b5899d2-13f0-41c9-a9dd-b71a37442fd4"
+      }
+    }
   }
 }
