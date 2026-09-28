@@ -1,10 +1,23 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Pressable, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Pressable, Platform, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Purchases from 'react-native-purchases';
 import { useAppStore } from '../src/store/useAppStore';
+
+// Safe import — RevenueCat only works in native builds, not Expo Go or Web
+let Purchases: any = null;
+try {
+  Purchases = require('react-native-purchases').default;
+} catch (e) {
+  // Native module not available (Expo Go / Web)
+}
+
+const REVENUECAT_API_KEY = Platform.select({
+  android: 'goog_VVWOqfBJKHGQUNMwnBHaBmBZFYn',
+  ios: 'appl_PASTE_YOUR_IOS_KEY_HERE',
+  default: '',
+});
 
 export default function SubscriptionScreen() {
   const router = useRouter();
@@ -15,44 +28,50 @@ export default function SubscriptionScreen() {
     router.back();
   };
 
-  const handleRestore = async () => {
-    try {
-      await Purchases.restorePurchases();
-      alert('Purchases restored!');
-    } catch (e) {
-      alert('Restore failed. Try again.');
-    }
-  };
-
+  // Initialize RevenueCat SDK on mount (native builds only)
   useEffect(() => {
+    if (!Purchases || Platform.OS === 'web') return;
     try {
-      if (Platform.OS === 'ios') {
-        Purchases.configure({ apiKey: 'PASTE_YOUR_IOS_SDK_KEY_HERE' });
-      } else if (Platform.OS === 'android') {
-        Purchases.configure({ apiKey: 'PASTE_YOUR_ANDROID_SDK_KEY_HERE' });
-      }
+      Purchases.configure({ apiKey: REVENUECAT_API_KEY });
     } catch (e) {
-      console.error(e);
+      console.warn('[RevenueCat] Configure failed:', e);
     }
   }, []);
 
+  const handleRestore = async () => {
+    if (!Purchases) {
+      Alert.alert('Not Available', 'In-app purchases require a native build. Run: npx expo run:android');
+      return;
+    }
+    try {
+      await Purchases.restorePurchases();
+      Alert.alert('Success', 'Purchases restored!');
+    } catch (e) {
+      Alert.alert('Error', 'Restore failed. Try again.');
+    }
+  };
+
   const handleSelectPlan = async (tier: string) => {
     if (tier === 'free') return;
+    if (!Purchases) {
+      Alert.alert('Not Available', 'In-app purchases require a native build. Run: npx expo run:android');
+      return;
+    }
     try {
       const offerings = await Purchases.getOfferings();
       const pkg = offerings.current?.availablePackages[0];
       if (!pkg) {
-        alert('No packages found. Check RevenueCat dashboard.');
+        Alert.alert('No Packages', 'No packages found. Check RevenueCat dashboard.');
         return;
       }
       const { customerInfo } = await Purchases.purchasePackage(pkg);
       if (customerInfo.entitlements.active['premium']) {
-        alert('Premium unlocked!');
-        // Zustand store update karo yahan agar chahiye
+        useAppStore.getState().setSubscription?.({ ...subscription, tier: 'premium' as any });
+        Alert.alert('Success', 'Premium unlocked! 🎉');
       }
     } catch (e: any) {
       if (!e.userCancelled) {
-        alert('Purchase failed: ' + e.message);
+        Alert.alert('Purchase Failed', e.message || 'Something went wrong.');
       }
     }
   };
