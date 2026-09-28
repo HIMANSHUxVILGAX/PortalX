@@ -6,7 +6,7 @@ const hostIp = debuggerHost ? debuggerHost.split(':')[0] : '192.168.72.44';
 
 // Backend API base URL
 export const API_BASE_URL = __DEV__
-  ? `http://${hostIp}:8001`
+  ? `http://${hostIp}:8000`
   : 'https://api.portelx.app';
 
 // Session Defaults

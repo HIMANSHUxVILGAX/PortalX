@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Pressable, Platfo
 import { useRouter } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Purchases from 'react-native-purchases';
 import { useAppStore } from '../src/store/useAppStore';
 
 export default function SubscriptionScreen() {
@@ -14,12 +15,37 @@ export default function SubscriptionScreen() {
     router.back();
   };
 
-  const handleRestore = () => {
-    // Restore logic
+  const handleRestore = async () => {
+    try {
+      await Purchases.restorePurchases();
+      alert('Purchases restored!');
+    } catch (e) {
+      alert('Restore failed. Try again.');
+    }
   };
 
-  const handleSelectPlan = (tier: string) => {
-    // Select logic
+  const handleSelectPlan = async (tier: string) => {
+    if (tier === 'free') return;
+    try {
+      Purchases.configure({
+        apiKey: 'PASTE_YOUR_SDK_KEY_HERE', // Step 1 ki key
+      });
+      const offerings = await Purchases.getOfferings();
+      const pkg = offerings.current?.availablePackages[0];
+      if (!pkg) {
+        alert('No packages found. Check RevenueCat dashboard.');
+        return;
+      }
+      const { customerInfo } = await Purchases.purchasePackage(pkg);
+      if (customerInfo.entitlements.active['premium']) {
+        alert('Premium unlocked!');
+        // Zustand store update karo yahan agar chahiye
+      }
+    } catch (e: any) {
+      if (!e.userCancelled) {
+        alert('Purchase failed: ' + e.message);
+      }
+    }
   };
 
   const currentTier = subscription?.tier || 'premium';
@@ -36,7 +62,7 @@ export default function SubscriptionScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        
+
         {/* Hero Section */}
         <View style={styles.heroCard}>
           <View style={styles.heroHeader}>
@@ -49,9 +75,9 @@ export default function SubscriptionScreen() {
               <Text style={styles.activeText}>Active</Text>
             </View>
           </View>
-          
+
           <Text style={styles.renewalText}>Renews Dec 2026</Text>
-          
+
           <View style={styles.heroFooter}>
             <Text style={styles.managedText}>Managed by RevenueCat</Text>
           </View>
@@ -60,7 +86,7 @@ export default function SubscriptionScreen() {
         <Text style={styles.sectionTitle}>Available Plans</Text>
 
         {/* Free Plan */}
-        <Pressable 
+        <Pressable
           style={[styles.planCard, currentTier === 'free' && styles.activePlanCard]}
           onPress={() => handleSelectPlan('free')}
         >
@@ -81,7 +107,7 @@ export default function SubscriptionScreen() {
         </Pressable>
 
         {/* Premium Plan */}
-        <Pressable 
+        <Pressable
           style={[styles.planCard, styles.premiumCard, currentTier === 'premium' && styles.activePlanCard]}
           onPress={() => handleSelectPlan('premium')}
         >
@@ -103,7 +129,7 @@ export default function SubscriptionScreen() {
         </Pressable>
 
         {/* Enterprise Plan */}
-        <Pressable 
+        <Pressable
           style={[styles.planCard, styles.enterpriseCard, currentTier === 'enterprise' && styles.activePlanCard]}
           onPress={() => handleSelectPlan('enterprise')}
         >

@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Modal, Animated, 
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as ScreenCapture from 'expo-screen-capture';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSessionStore } from '../src/store/useSessionStore';
 import { useAppStore } from '../src/store/useAppStore';
 import { API_BASE_URL } from '../src/constants/config';
@@ -79,12 +80,18 @@ export default function PortelxVaultScreen() {
   const handleDestroy = async () => {
     setModalVisible(false);
     try {
+      // 1. AsyncStorage wipe
+      await AsyncStorage.clear();
+
       const res = await destroyVault();
       const latency = res?.wipeLatencyMs !== undefined ? res.wipeLatencyMs : '0.0021';
       const bytes = res?.bytesZeroized !== undefined ? res.bytesZeroized : 0;
-      router.replace({ pathname: '/portelx_zeroized', params: { latency: latency.toString(), bytes: bytes.toString() } });
+
+      const timestamp = new Date().toISOString();
+      router.replace({ pathname: '/portelx_zeroized', params: { latency: latency.toString(), bytes: bytes.toString(), wipedAt: timestamp } });
     } catch (e) {
-      router.replace({ pathname: '/portelx_zeroized', params: { latency: '0.0021', bytes: '0' } });
+      const timestamp = new Date().toISOString();
+      router.replace({ pathname: '/portelx_zeroized', params: { latency: '0.0021', bytes: '0', wipedAt: timestamp } });
     }
   };
 
