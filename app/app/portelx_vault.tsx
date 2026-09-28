@@ -81,7 +81,11 @@ export default function PortelxVaultScreen() {
     setModalVisible(false);
     try {
       // 1. AsyncStorage wipe
-      await AsyncStorage.clear();
+      try {
+        await AsyncStorage.clear();
+      } catch (storageErr) {
+        console.warn('AsyncStorage.clear failed', storageErr);
+      }
 
       const res = await destroyVault();
       const latency = res?.wipeLatencyMs !== undefined ? res.wipeLatencyMs : '0.0021';
