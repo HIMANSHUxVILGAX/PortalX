@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Pressable, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
@@ -24,12 +24,21 @@ export default function SubscriptionScreen() {
     }
   };
 
+  useEffect(() => {
+    try {
+      if (Platform.OS === 'ios') {
+        Purchases.configure({ apiKey: 'PASTE_YOUR_IOS_SDK_KEY_HERE' });
+      } else if (Platform.OS === 'android') {
+        Purchases.configure({ apiKey: 'PASTE_YOUR_ANDROID_SDK_KEY_HERE' });
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
+
   const handleSelectPlan = async (tier: string) => {
     if (tier === 'free') return;
     try {
-      Purchases.configure({
-        apiKey: 'PASTE_YOUR_SDK_KEY_HERE', // Step 1 ki key
-      });
       const offerings = await Purchases.getOfferings();
       const pkg = offerings.current?.availablePackages[0];
       if (!pkg) {
