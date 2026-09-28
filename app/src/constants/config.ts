@@ -5,9 +5,8 @@ const debuggerHost = Constants.expoConfig?.hostUri;
 const hostIp = debuggerHost ? debuggerHost.split(':')[0] : '192.168.72.44';
 
 // Backend API base URL
-export const API_BASE_URL = __DEV__
-  ? `http://${hostIp}:8000`
-  : 'https://api.portelx.app';
+// Hardcoded IP so the standalone APK on phone can talk to the laptop backend
+export const API_BASE_URL = 'http://192.168.72.44:8001';
 
 // Session Defaults
 export const DEFAULT_SESSION_TTL = 300;      // 5 minutes
