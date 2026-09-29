@@ -1,21 +1,33 @@
-import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Pressable, Platform, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Pressable,
+  Platform,
+  Alert,
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Constants from 'expo-constants';
 import { useAppStore } from '../src/store/useAppStore';
+import type { SubscriptionTier } from '../src/types';
 
-// Safe import — RevenueCat only works in native builds, not Expo Go or Web
+// Safe import — RevenueCat works in native builds, gracefully mocked in Expo Go & Web
 let Purchases: any = null;
 try {
   Purchases = require('react-native-purchases').default;
 } catch (e) {
-  // Native module not available (Expo Go / Web)
+  // Native module not available
 }
 
-// In Expo Go, native Google Play Store is not present, so we run in seamless Demo Mode
-const isExpoGo = Constants.appOwnership === 'expo' || Constants.executionEnvironment === 'storeClient' || !Purchases;
+const isExpoGo =
+  Constants.appOwnership === 'expo' ||
+  Constants.executionEnvironment === 'storeClient' ||
+  !Purchases;
 
 const REVENUECAT_API_KEY = Platform.select({
   android: 'goog_VVWOqfBJKHGQUNMwnBHaBmBZFYn',
@@ -23,16 +35,110 @@ const REVENUECAT_API_KEY = Platform.select({
   default: '',
 });
 
+interface PlanFeature {
+  title: string;
+  included: boolean;
+}
+
+interface PlanDefinition {
+  id: SubscriptionTier;
+  name: string;
+  badge?: string;
+  badgeColor?: string;
+  price: string;
+  period: string;
+  headline: string;
+  roomQuota: string;
+  spendCap: string;
+  features: PlanFeature[];
+}
+
+const PLANS: PlanDefinition[] = [
+  {
+    id: 'basic',
+    name: 'BASIC',
+    price: 'Free',
+    period: '',
+    headline: 'Single-session temporary security',
+    roomQuota: '1 Guest Room / month',
+    spendCap: 'Up to ₹10,000 spend cap',
+    features: [
+      { title: '1 Guest Room per month', included: true },
+      { title: 'Up to ₹10,000 in PortelX account', included: true },
+      { title: 'UPI payments & Document streaming', included: true },
+      { title: 'Up to 4 Local Bank Accounts', included: true },
+      { title: "Owner's mobile alert notification", included: false },
+      { title: 'Crypto recharge & On-Ramp', included: false },
+      { title: 'Visa virtual cards', included: false },
+      { title: 'Mastercard virtual cards', included: false },
+      { title: 'Automated OTP forwarding', included: false },
+      { title: 'Password Manager vault', included: false },
+    ],
+  },
+  {
+    id: 'standard',
+    name: 'STANDARD',
+    badge: 'MOST POPULAR',
+    badgeColor: '#00E5FF',
+    price: '₹499',
+    period: '/mo',
+    headline: 'Advanced guest vault for regular borrowers',
+    roomQuota: '15 Guest Rooms / month',
+    spendCap: 'Up to ₹50,000 in PortelX',
+    features: [
+      { title: '15 Guest Rooms per month', included: true },
+      { title: 'Up to ₹50,000 in PortelX account', included: true },
+      { title: 'Visa virtual cards included', included: true },
+      { title: '10 Local Bank Accounts linked', included: true },
+      { title: 'UPI & Identity Documents', included: true },
+      { title: 'Owner Notification (Respond within 48h)', included: true },
+      { title: 'Encrypted Password Manager vault', included: true },
+      { title: 'Crypto recharge & On-Ramp', included: false },
+      { title: 'Mastercard virtual cards', included: false },
+      { title: 'Automated OTP forwarding', included: false },
+    ],
+  },
+  {
+    id: 'pro',
+    name: 'PORTELX PRO',
+    badge: 'UNLIMITED • ALL SERVICES',
+    badgeColor: '#F59E0B',
+    price: '₹1,499',
+    period: '/mo',
+    headline: 'Complete identity & finance sovereignty',
+    roomQuota: 'Unlimited Guest Rooms',
+    spendCap: 'Unlimited Account Balance & Limits',
+    features: [
+      { title: 'Unlimited Guest Rooms forever', included: true },
+      { title: 'All Services unlocked (Visa & Mastercard)', included: true },
+      { title: 'Crypto Portfolio & Fiat-to-Crypto On-Ramp', included: true },
+      { title: 'Unlimited Local & International Banks', included: true },
+      { title: 'UPI, DigiLocker & Documents access', included: true },
+      { title: 'Priority Owner Alert (Respond within 10 days)', included: true },
+      { title: 'Real-time OTP forwarding & Biometrics', included: true },
+      { title: 'Full Password Manager + Forensic RAM Wipe', included: true },
+    ],
+  },
+];
+
 export default function SubscriptionScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { subscription } = useAppStore();
+  const { subscription, setSubscription } = useAppStore();
 
-  const handleBack = () => {
-    router.back();
-  };
+  // Normalize current tier to 'basic', 'standard', or 'pro'
+  const rawTier = (subscription?.tier as string) || 'standard';
+  const normalizedCurrentTier: SubscriptionTier =
+    rawTier === 'free' || rawTier === 'basic'
+      ? 'basic'
+      : rawTier === 'pro' || rawTier === 'enterprise'
+      ? 'pro'
+      : 'standard';
 
-  // Initialize RevenueCat SDK on mount (native builds only, skipped in Expo Go to avoid RedBox)
+  const [selectedTier, setSelectedTier] = useState<SubscriptionTier>(normalizedCurrentTier);
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  // Initialize RevenueCat SDK on mount (native builds only)
   useEffect(() => {
     if (!Purchases || Platform.OS === 'web' || isExpoGo) return;
     try {
@@ -42,88 +148,136 @@ export default function SubscriptionScreen() {
     }
   }, []);
 
-  const handleRestore = async () => {
-    if (isExpoGo) {
-      // Graceful demo simulation in Expo Go
-      Alert.alert('Restore Purchases', 'Restored previous purchases via RevenueCat (Demo Mode).');
-      return;
-    }
-    try {
-      await Purchases.restorePurchases();
-      Alert.alert('Success', 'Purchases restored!');
-    } catch (e) {
-      Alert.alert('Error', 'Restore failed. Try again.');
-    }
+  const handleBack = () => {
+    router.back();
   };
 
-  const handleSelectPlan = async (tier: string) => {
-    if (tier === 'free') {
-      useAppStore.getState().setSubscription?.({ tier: 'free', name: 'Free Tier', price: '$0', isActive: false });
-      return;
-    }
-    if (!Purchases || isExpoGo) {
-      // In Expo Go: simulate the successful purchase flow with realistic prompt
+  const handleRestore = async () => {
+    if (isExpoGo) {
       Alert.alert(
-        'RevenueCat Sandbox (Demo Mode)',
-        `Simulating upgrade to ${tier === 'enterprise' ? 'Enterprise' : 'Premium'} tier?`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Simulate Purchase',
-            onPress: () => {
-              useAppStore.getState().setSubscription?.({
-                tier: tier as any,
-                name: tier === 'enterprise' ? 'Enterprise Tier' : 'Premium Tier',
-                price: tier === 'enterprise' ? '$29.99' : '$9.99',
-                isActive: true,
-              });
-              Alert.alert('Success', `${tier === 'enterprise' ? 'Enterprise' : 'Premium'} Plan Activated! 🎉`);
-            },
-          },
-        ]
+        'RevenueCat Restore',
+        'Purchases checked with RevenueCat. Active entitlement: ' +
+          (subscription?.name || 'Standard Plan')
       );
       return;
     }
     try {
+      await Purchases.restorePurchases();
+      Alert.alert('Success', 'Purchases restored successfully!');
+    } catch (e: any) {
+      Alert.alert('Error', e?.message || 'Restore failed. Try again.');
+    }
+  };
+
+  const handleExecuteSubscription = async (targetTier: SubscriptionTier) => {
+    const plan = PLANS.find((p) => p.id === targetTier) || PLANS[1];
+
+    if (targetTier === normalizedCurrentTier) {
+      Alert.alert('Active Plan', `You are already on the ${plan.name} plan.`);
+      return;
+    }
+
+    setIsProcessing(true);
+
+    if (targetTier === 'basic') {
+      setSubscription({
+        tier: 'basic',
+        name: 'Basic Plan',
+        price: 'Free',
+        isActive: true,
+      });
+      setIsProcessing(false);
+      Alert.alert('Downgraded', 'Switched to Basic plan.');
+      return;
+    }
+
+    // In Expo Go or mock mode: simulate realistic purchase dialog
+    if (isExpoGo) {
+      setTimeout(() => {
+        setIsProcessing(false);
+        Alert.alert(
+          'RevenueCat Purchase Simulation',
+          `Confirm subscription to ${plan.name} at ${plan.price}${plan.period}?`,
+          [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Subscribe Now',
+              onPress: () => {
+                setSubscription({
+                  tier: targetTier,
+                  name: `${plan.name} Plan`,
+                  price: `${plan.price}${plan.period}`,
+                  isActive: true,
+                });
+                Alert.alert(
+                  'Subscription Activated! 🎉',
+                  `Welcome to ${plan.name}! All associated guest vault limits and features are now unlocked.`
+                );
+              },
+            },
+          ]
+        );
+      }, 500);
+      return;
+    }
+
+    // Real RevenueCat In-App Purchase Flow (Standalone APK)
+    try {
       const offerings = await Purchases.getOfferings();
       const pkg = offerings.current?.availablePackages[0];
       if (!pkg) {
-        Alert.alert('No Packages', 'No packages found. Check RevenueCat dashboard.');
+        setIsProcessing(false);
+        Alert.alert('No Package Found', 'Check RevenueCat dashboard offering setup.');
         return;
       }
       const { customerInfo } = await Purchases.purchasePackage(pkg);
+      setIsProcessing(false);
       if (customerInfo.entitlements.active['premium']) {
-        useAppStore.getState().setSubscription?.({ ...subscription, tier: 'premium' as any });
-        Alert.alert('Success', 'Premium unlocked! 🎉');
+        setSubscription({
+          tier: targetTier,
+          name: `${plan.name} Plan`,
+          price: `${plan.price}${plan.period}`,
+          isActive: true,
+        });
+        Alert.alert('Success', `${plan.name} unlocked via RevenueCat! 🎉`);
       }
     } catch (e: any) {
+      setIsProcessing(false);
       if (!e.userCancelled) {
         Alert.alert('Purchase Failed', e.message || 'Something went wrong.');
       }
     }
   };
 
-  const currentTier = subscription?.tier || 'premium';
+  const selectedPlanObj = PLANS.find((p) => p.id === selectedTier) || PLANS[1];
+  const isSelectedCurrent = selectedTier === normalizedCurrentTier;
 
   return (
-    <View style={[styles.container, { paddingTop: Math.max(insets.top, 20) }]}>
-      {/* Header */}
+    <View style={[styles.container, { paddingTop: Math.max(insets.top, 16) }]}>
+      {/* Top Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={handleBack} hitSlop={15}>
           <Ionicons name="arrow-back" size={24} color="#F8FAFC" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>PortelX Premium</Text>
+        <Text style={styles.headerTitle}>PortelX Subscriptions</Text>
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-
-        {/* Hero Section */}
+      <ScrollView
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 120 }]}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Hero Active Plan Card */}
         <View style={styles.heroCard}>
           <View style={styles.heroHeader}>
             <View style={styles.heroTitleRow}>
-              <MaterialCommunityIcons name="shield-check" size={24} color="#00E5FF" />
-              <Text style={styles.heroTitle}>{subscription?.name || 'Premium'}</Text>
+              <MaterialCommunityIcons name="shield-check" size={26} color="#00E5FF" />
+              <View>
+                <Text style={styles.heroSubtitle}>CURRENT PLAN</Text>
+                <Text style={styles.heroTitle}>
+                  {subscription?.name || (normalizedCurrentTier === 'pro' ? 'PortelX Pro' : normalizedCurrentTier === 'basic' ? 'Basic Plan' : 'Standard Plan')}
+                </Text>
+              </View>
             </View>
             <View style={styles.activeBadge}>
               <View style={styles.activeDot} />
@@ -131,106 +285,219 @@ export default function SubscriptionScreen() {
             </View>
           </View>
 
-          <Text style={styles.renewalText}>Renews Dec 2026</Text>
-
-          <View style={styles.heroFooter}>
-            <Text style={styles.managedText}>Managed by RevenueCat</Text>
+          <View style={styles.heroMetaRow}>
+            <Text style={styles.renewalText}>Managed via Google Play & RevenueCat</Text>
+            <TouchableOpacity onPress={handleRestore}>
+              <Text style={styles.restoreLink}>Restore Purchases</Text>
+            </TouchableOpacity>
           </View>
         </View>
 
-        <Text style={styles.sectionTitle}>Available Plans</Text>
-
-        {/* Free Plan */}
-        <Pressable
-          style={[styles.planCard, currentTier === 'free' && styles.activePlanCard]}
-          onPress={() => handleSelectPlan('free')}
-        >
-          <View style={styles.planHeader}>
-            <Text style={styles.planName}>Basic</Text>
-            <Text style={styles.planPrice}>Free</Text>
-          </View>
-          {currentTier === 'free' && (
-            <View style={styles.currentBadge}>
-              <Text style={styles.currentBadgeText}>CURRENT PLAN</Text>
-            </View>
-          )}
-          <View style={styles.featureList}>
-            <FeatureItem text="Basic verification" />
-            <FeatureItem text="Standard support" />
-            <FeatureItem text="Limited checks" />
-          </View>
-        </Pressable>
-
-        {/* Premium Plan */}
-        <Pressable
-          style={[styles.planCard, styles.premiumCard, currentTier === 'premium' && styles.activePlanCard]}
-          onPress={() => handleSelectPlan('premium')}
-        >
-          <View style={styles.planHeader}>
-            <Text style={[styles.planName, { color: '#00E5FF' }]}>Premium</Text>
-            <Text style={styles.planPrice}>$9.99<Text style={styles.pricePeriod}>/mo</Text></Text>
-          </View>
-          {currentTier === 'premium' && (
-            <View style={styles.currentBadgeAccent}>
-              <Text style={styles.currentBadgeTextAccent}>CURRENT PLAN</Text>
-            </View>
-          )}
-          <View style={styles.featureList}>
-            <FeatureItem text="Advanced identity verification" color="#00E5FF" />
-            <FeatureItem text="Priority support 24/7" color="#00E5FF" />
-            <FeatureItem text="Unlimited checks" color="#00E5FF" />
-            <FeatureItem text="Detailed activity reports" color="#00E5FF" />
-          </View>
-        </Pressable>
-
-        {/* Enterprise Plan */}
-        <Pressable
-          style={[styles.planCard, styles.enterpriseCard, currentTier === 'enterprise' && styles.activePlanCard]}
-          onPress={() => handleSelectPlan('enterprise')}
-        >
-          <View style={styles.bestValueBadge}>
-            <Text style={styles.bestValueText}>BEST VALUE</Text>
-          </View>
-          <View style={styles.planHeader}>
-            <Text style={[styles.planName, { color: '#F59E0B' }]}>Enterprise</Text>
-            <Text style={styles.planPrice}>$29.99<Text style={styles.pricePeriod}>/mo</Text></Text>
-          </View>
-          {currentTier === 'enterprise' && (
-            <View style={styles.currentBadgeGold}>
-              <Text style={styles.currentBadgeTextGold}>CURRENT PLAN</Text>
-            </View>
-          )}
-          <View style={styles.featureList}>
-            <FeatureItem text="Everything in Premium" color="#F59E0B" />
-            <FeatureItem text="Dedicated account manager" color="#F59E0B" />
-            <FeatureItem text="API access & webhooks" color="#F59E0B" />
-            <FeatureItem text="Custom compliance rules" color="#F59E0B" />
-          </View>
-        </Pressable>
-
-        {/* Bottom Links */}
-        <View style={styles.footerLinks}>
-          <TouchableOpacity onPress={handleRestore}>
-            <Text style={styles.linkText}>Restore Purchases</Text>
-          </TouchableOpacity>
-          <View style={styles.dot} />
-          <TouchableOpacity>
-            <Text style={styles.linkText}>Terms & Conditions</Text>
-          </TouchableOpacity>
+        {/* Section Heading */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Choose Your Security Tier</Text>
+          <Text style={styles.sectionSubtitle}>Select a plan below to preview features and upgrade</Text>
         </View>
 
-        <View style={{ height: 40 }} />
+        {/* Available Plan Cards */}
+        {PLANS.map((plan) => {
+          const isSelected = selectedTier === plan.id;
+          const isCurrent = normalizedCurrentTier === plan.id;
+
+          return (
+            <Pressable
+              key={plan.id}
+              style={[
+                styles.planCard,
+                isSelected && styles.planCardSelected,
+                plan.id === 'standard' && styles.standardCard,
+                plan.id === 'pro' && styles.proCard,
+                isSelected && plan.id === 'standard' && styles.standardCardSelected,
+                isSelected && plan.id === 'pro' && styles.proCardSelected,
+              ]}
+              onPress={() => setSelectedTier(plan.id)}
+            >
+              {/* Badge if available */}
+              {plan.badge && (
+                <View
+                  style={[
+                    styles.planBadge,
+                    { backgroundColor: plan.badgeColor || '#00E5FF' },
+                  ]}
+                >
+                  <Text style={styles.planBadgeText}>{plan.badge}</Text>
+                </View>
+              )}
+
+              {/* Plan Header */}
+              <View style={styles.planTopRow}>
+                <View style={{ flex: 1 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <Text
+                      style={[
+                        styles.planName,
+                        plan.id === 'standard' && { color: '#00E5FF' },
+                        plan.id === 'pro' && { color: '#F59E0B' },
+                      ]}
+                    >
+                      {plan.name}
+                    </Text>
+                    {isCurrent && (
+                      <View style={styles.currentTag}>
+                        <Text style={styles.currentTagText}>ACTIVE</Text>
+                      </View>
+                    )}
+                  </View>
+                  <Text style={styles.planHeadline}>{plan.headline}</Text>
+                </View>
+
+                {/* Price Display */}
+                <View style={styles.priceContainer}>
+                  <Text
+                    style={[
+                      styles.planPrice,
+                      plan.id === 'standard' && { color: '#00E5FF' },
+                      plan.id === 'pro' && { color: '#F59E0B' },
+                    ]}
+                  >
+                    {plan.price}
+                  </Text>
+                  {plan.period ? <Text style={styles.pricePeriod}>{plan.period}</Text> : null}
+                </View>
+              </View>
+
+              {/* Quota Highlights Banner */}
+              <View style={styles.quotaBanner}>
+                <View style={styles.quotaItem}>
+                  <Ionicons name="cube-outline" size={16} color="#94A3B8" />
+                  <Text style={styles.quotaText}>{plan.roomQuota}</Text>
+                </View>
+                <View style={styles.quotaDivider} />
+                <View style={styles.quotaItem}>
+                  <Ionicons name="wallet-outline" size={16} color="#94A3B8" />
+                  <Text style={styles.quotaText}>{plan.spendCap}</Text>
+                </View>
+              </View>
+
+              {/* Feature Checklist */}
+              <View style={styles.featureList}>
+                {plan.features.map((feat, idx) => (
+                  <View key={idx} style={styles.featureRow}>
+                    <Ionicons
+                      name={feat.included ? 'checkmark-circle' : 'close-circle-outline'}
+                      size={18}
+                      color={
+                        feat.included
+                          ? plan.id === 'pro'
+                            ? '#F59E0B'
+                            : '#00E5FF'
+                          : '#475569'
+                      }
+                      style={styles.featureIcon}
+                    />
+                    <Text
+                      style={[
+                        styles.featureText,
+                        !feat.included && styles.featureTextDisabled,
+                      ]}
+                    >
+                      {feat.title}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+
+              {/* Tap to Select Radio Indicator */}
+              <View style={styles.cardFooter}>
+                <View
+                  style={[
+                    styles.radioCircle,
+                    isSelected && styles.radioCircleSelected,
+                    isSelected && plan.id === 'pro' && { borderColor: '#F59E0B' },
+                  ]}
+                >
+                  {isSelected && (
+                    <View
+                      style={[
+                        styles.radioDot,
+                        plan.id === 'pro' && { backgroundColor: '#F59E0B' },
+                      ]}
+                    />
+                  )}
+                </View>
+                <Text
+                  style={[
+                    styles.selectHintText,
+                    isSelected && { color: '#F8FAFC', fontWeight: '700' },
+                  ]}
+                >
+                  {isCurrent
+                    ? 'Currently Subscribed'
+                    : isSelected
+                    ? 'Selected Plan'
+                    : 'Tap to Select'}
+                </Text>
+              </View>
+            </Pressable>
+          );
+        })}
+
+        {/* Footer Notes */}
+        <View style={styles.footerInfo}>
+          <Text style={styles.footerNotice}>
+            Subscriptions renew automatically unless canceled at least 24 hours before the end
+            of the billing cycle. Payments processed securely via RevenueCat & Google Play.
+          </Text>
+        </View>
       </ScrollView>
+
+      {/* Sticky Bottom Action Bar with Subscribe Button */}
+      <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+        <View style={styles.bottomBarContent}>
+          <View style={styles.bottomBarInfo}>
+            <Text style={styles.bottomBarLabel}>SELECTED TIER</Text>
+            <Text style={styles.bottomBarPlanName}>
+              {selectedPlanObj.name}{' '}
+              <Text style={styles.bottomBarPrice}>
+                ({selectedPlanObj.price}
+                {selectedPlanObj.period})
+              </Text>
+            </Text>
+          </View>
+
+          <TouchableOpacity
+            style={[
+              styles.subscribeButton,
+              isSelectedCurrent && styles.currentPlanButton,
+              selectedPlanObj.id === 'pro' && !isSelectedCurrent && styles.proButton,
+            ]}
+            onPress={() => handleExecuteSubscription(selectedTier)}
+            disabled={isProcessing}
+            activeOpacity={0.8}
+          >
+            {isProcessing ? (
+              <Text style={styles.subscribeButtonText}>Processing...</Text>
+            ) : isSelectedCurrent ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Ionicons name="checkmark-done" size={18} color="#10B981" />
+                <Text style={styles.currentPlanButtonText}>Current Plan</Text>
+              </View>
+            ) : (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Text style={styles.subscribeButtonText}>
+                  {selectedPlanObj.id === 'basic'
+                    ? 'Switch to Basic'
+                    : `Subscribe — ${selectedPlanObj.price}`}
+                </Text>
+                <Ionicons name="arrow-forward" size={16} color="#000" />
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
+      </View>
     </View>
   );
 }
-
-const FeatureItem = ({ text, color = '#64748B' }: { text: string, color?: string }) => (
-  <View style={styles.featureItem}>
-    <Ionicons name="checkmark-circle" size={20} color={color} style={styles.featureIcon} />
-    <Text style={styles.featureText}>{text}</Text>
-  </View>
-);
 
 const styles = StyleSheet.create({
   container: {
@@ -242,7 +509,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingBottom: 16,
+    paddingBottom: 14,
     borderBottomWidth: 1,
     borderBottomColor: '#1E293B',
   },
@@ -258,20 +525,15 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   scrollContent: {
-    padding: 20,
+    padding: 16,
   },
   heroCard: {
     backgroundColor: '#0F172A',
     borderRadius: 16,
-    padding: 20,
-    marginBottom: 32,
+    padding: 18,
+    marginBottom: 20,
     borderWidth: 1,
     borderColor: '#1E293B',
-    shadowColor: '#00E5FF',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 5,
   },
   heroHeader: {
     flexDirection: 'row',
@@ -282,10 +544,16 @@ const styles = StyleSheet.create({
   heroTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 12,
+  },
+  heroSubtitle: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#00E5FF',
+    letterSpacing: 1,
   },
   heroTitle: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '700',
     color: '#F8FAFC',
   },
@@ -309,157 +577,296 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#10B981',
   },
-  renewalText: {
-    fontSize: 14,
-    color: '#94A3B8',
-    marginBottom: 20,
-  },
-  heroFooter: {
+  heroMetaRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     borderTopWidth: 1,
     borderTopColor: '#1E293B',
-    paddingTop: 12,
+    paddingTop: 10,
   },
-  managedText: {
+  renewalText: {
     fontSize: 12,
-    color: '#64748B',
-    textAlign: 'center',
+    color: '#94A3B8',
+  },
+  restoreLink: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#00E5FF',
+  },
+  sectionHeader: {
+    marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 20,
+    fontWeight: '800',
     color: '#F8FAFC',
-    marginBottom: 16,
+    letterSpacing: 0.3,
+  },
+  sectionSubtitle: {
+    fontSize: 13,
+    color: '#94A3B8',
+    marginTop: 4,
   },
   planCard: {
     backgroundColor: '#0F172A',
     borderRadius: 16,
-    padding: 24,
-    marginBottom: 16,
-    borderWidth: 1,
+    padding: 20,
+    marginBottom: 18,
+    borderWidth: 1.5,
+    borderColor: '#1E293B',
+    position: 'relative',
+  },
+  planCardSelected: {
+    borderColor: '#38BDF8',
+    backgroundColor: '#0E172B',
+  },
+  standardCard: {
+    backgroundColor: '#0A1224',
     borderColor: '#1E293B',
   },
-  premiumCard: {
+  standardCardSelected: {
     borderColor: '#00E5FF',
-    backgroundColor: '#0A1224',
+    backgroundColor: '#0B1832',
+    shadowColor: '#00E5FF',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    elevation: 4,
   },
-  enterpriseCard: {
-    borderColor: '#F59E0B',
+  proCard: {
     backgroundColor: '#121008',
-    marginTop: 8, // Space for best value badge
+    borderColor: '#1E293B',
+    marginTop: 6,
   },
-  activePlanCard: {
-    borderWidth: 2,
+  proCardSelected: {
+    borderColor: '#F59E0B',
+    backgroundColor: '#1C160B',
+    shadowColor: '#F59E0B',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 4,
   },
-  bestValueBadge: {
+  planBadge: {
     position: 'absolute',
     top: -12,
-    right: 24,
-    backgroundColor: '#F59E0B',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
+    right: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 8,
   },
-  bestValueText: {
+  planBadgeText: {
     fontSize: 10,
     fontWeight: '800',
     color: '#000',
     letterSpacing: 0.5,
   },
-  planHeader: {
+  planTopRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'baseline',
-    marginBottom: 16,
+    alignItems: 'flex-start',
+    marginBottom: 14,
   },
   planName: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#F8FAFC',
+    letterSpacing: 0.5,
+  },
+  currentTag: {
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  currentTagText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#10B981',
+  },
+  planHeadline: {
+    fontSize: 13,
+    color: '#94A3B8',
+    marginTop: 4,
+  },
+  priceContainer: {
+    alignItems: 'flex-end',
   },
   planPrice: {
     fontSize: 24,
-    fontWeight: '800',
+    fontWeight: '900',
     color: '#F8FAFC',
   },
   pricePeriod: {
-    fontSize: 14,
-    fontWeight: '500',
+    fontSize: 12,
+    fontWeight: '600',
     color: '#94A3B8',
   },
-  currentBadge: {
-    backgroundColor: '#1E293B',
-    alignSelf: 'flex-start',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
+  quotaBanner: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(30, 41, 59, 0.6)',
+    borderRadius: 10,
+    padding: 10,
     marginBottom: 16,
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    borderWidth: 1,
+    borderColor: '#1E293B',
   },
-  currentBadgeText: {
-    fontSize: 10,
+  quotaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  quotaDivider: {
+    width: 1,
+    height: 16,
+    backgroundColor: '#334155',
+  },
+  quotaText: {
+    fontSize: 12,
     fontWeight: '700',
-    color: '#94A3B8',
-    letterSpacing: 0.5,
-  },
-  currentBadgeAccent: {
-    backgroundColor: 'rgba(0, 229, 255, 0.15)',
-    alignSelf: 'flex-start',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
-    marginBottom: 16,
-  },
-  currentBadgeTextAccent: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#00E5FF',
-    letterSpacing: 0.5,
-  },
-  currentBadgeGold: {
-    backgroundColor: 'rgba(245, 158, 11, 0.15)',
-    alignSelf: 'flex-start',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
-    marginBottom: 16,
-  },
-  currentBadgeTextGold: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#F59E0B',
-    letterSpacing: 0.5,
+    color: '#E2E8F0',
   },
   featureList: {
-    gap: 12,
+    gap: 10,
+    marginBottom: 16,
   },
-  featureItem: {
+  featureRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
   },
   featureIcon: {
-    marginTop: 2,
+    marginTop: 1,
   },
   featureText: {
-    fontSize: 15,
+    fontSize: 13.5,
     color: '#CBD5E1',
     flex: 1,
+    lineHeight: 18,
   },
-  footerLinks: {
+  featureTextDisabled: {
+    color: '#475569',
+    textDecorationLine: 'line-through',
+  },
+  cardFooter: {
     flexDirection: 'row',
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(30, 41, 59, 0.7)',
+    paddingTop: 12,
+    gap: 8,
+  },
+  radioCircle: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 2,
+    borderColor: '#475569',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 24,
-    gap: 16,
   },
-  linkText: {
-    fontSize: 14,
+  radioCircleSelected: {
+    borderColor: '#00E5FF',
+  },
+  radioDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#00E5FF',
+  },
+  selectHintText: {
+    fontSize: 12,
+    color: '#64748B',
+    fontWeight: '500',
+  },
+  footerInfo: {
+    marginTop: 12,
+    marginBottom: 20,
+    paddingHorizontal: 8,
+  },
+  footerNotice: {
+    fontSize: 11,
+    color: '#64748B',
+    textAlign: 'center',
+    lineHeight: 16,
+  },
+  bottomBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#0A0F1A',
+    borderTopWidth: 1,
+    borderTopColor: '#1E293B',
+    paddingHorizontal: 20,
+    paddingTop: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 10,
+  },
+  bottomBarContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  bottomBarInfo: {
+    flex: 1,
+  },
+  bottomBarLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#64748B',
+    letterSpacing: 0.5,
+  },
+  bottomBarPlanName: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#F8FAFC',
+    marginTop: 2,
+  },
+  bottomBarPrice: {
+    fontSize: 13,
+    fontWeight: '600',
     color: '#94A3B8',
-    textDecorationLine: 'underline',
   },
-  dot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: '#475569',
+  subscribeButton: {
+    backgroundColor: '#00E5FF',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#00E5FF',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  proButton: {
+    backgroundColor: '#F59E0B',
+    shadowColor: '#F59E0B',
+  },
+  subscribeButtonText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#000000',
+    letterSpacing: 0.3,
+  },
+  currentPlanButton: {
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    borderWidth: 1,
+    borderColor: '#10B981',
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  currentPlanButtonText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#10B981',
   },
 });

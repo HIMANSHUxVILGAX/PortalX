@@ -15,7 +15,7 @@ export interface UserProfile {
 }
 
 // ─── Subscription / RevenueCat ───────────────────────────────
-export type SubscriptionTier = 'free' | 'premium' | 'bundle' | 'enterprise';
+export type SubscriptionTier = 'free' | 'basic' | 'standard' | 'premium' | 'bundle' | 'enterprise' | 'pro';
 
 export interface SubscriptionPlan {
   tier: SubscriptionTier;
