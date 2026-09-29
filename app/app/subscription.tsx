@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Pressable, Platfo
 import { useRouter } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Constants from 'expo-constants';
 import { useAppStore } from '../src/store/useAppStore';
 
 // Safe import — RevenueCat only works in native builds, not Expo Go or Web
@@ -12,6 +13,9 @@ try {
 } catch (e) {
   // Native module not available (Expo Go / Web)
 }
+
+// In Expo Go, native Google Play Store is not present, so we run in seamless Demo Mode
+const isExpoGo = Constants.appOwnership === 'expo' || Constants.executionEnvironment === 'storeClient' || !Purchases;
 
 const REVENUECAT_API_KEY = Platform.select({
   android: 'goog_VVWOqfBJKHGQUNMwnBHaBmBZFYn',
@@ -28,18 +32,18 @@ export default function SubscriptionScreen() {
     router.back();
   };
 
-  // Initialize RevenueCat SDK on mount (native builds only)
+  // Initialize RevenueCat SDK on mount (native builds only, skipped in Expo Go to avoid RedBox)
   useEffect(() => {
-    if (!Purchases || Platform.OS === 'web') return;
+    if (!Purchases || Platform.OS === 'web' || isExpoGo) return;
     try {
       Purchases.configure({ apiKey: REVENUECAT_API_KEY });
     } catch (e) {
-      console.warn('[RevenueCat] Configure failed:', e);
+      // Graceful fallback
     }
   }, []);
 
   const handleRestore = async () => {
-    if (!Purchases) {
+    if (isExpoGo) {
       // Graceful demo simulation in Expo Go
       Alert.alert('Restore Purchases', 'Restored previous purchases via RevenueCat (Demo Mode).');
       return;
@@ -57,7 +61,7 @@ export default function SubscriptionScreen() {
       useAppStore.getState().setSubscription?.({ tier: 'free', name: 'Free Tier', price: '$0', isActive: false });
       return;
     }
-    if (!Purchases) {
+    if (!Purchases || isExpoGo) {
       // In Expo Go: simulate the successful purchase flow with realistic prompt
       Alert.alert(
         'RevenueCat Sandbox (Demo Mode)',
