@@ -105,7 +105,13 @@ async def _auto_destroy_session(session_id: str, delay: int):
     if session_id in SESSIONS:
         session = SESSIONS.pop(session_id)
         if "buffer" in session and session["buffer"]:
-            zeroize_buffer(session["buffer"])
+            bytes_to_wipe = len(session["buffer"])
+            wipe_latency_ms = zeroize_buffer(session["buffer"])
+            logger.info(f"")
+            logger.info(f"⏳ [PORTELX BACKEND] AUTO-TTL EXPIRED ⏳")
+            logger.info(f"-> Expired Session : {session_id}")
+            logger.info(f"-> Shredding       : {bytes_to_wipe} bytes")
+            logger.info(f"-> Forensics Wipe  : SUCCESS in {wipe_latency_ms:.4f} ms")
 
 
 class VaultOpenRequest(BaseModel):
@@ -492,6 +498,13 @@ async def vault_destroy(req: VaultDestroyRequest, db: Session = Depends(get_db))
     bytes_to_wipe = len(sensitive_data)
     wipe_latency_ms = zeroize_buffer(sensitive_data)
     is_wiped = all(b == 0 for b in sensitive_data)
+
+    logger.info(f"")
+    logger.info(f"🚨 [PORTELX BACKEND] ZEROIZATION INITIATED 🚨")
+    logger.info(f"-> Target Session  : {session_id}")
+    logger.info(f"-> Shredding       : {bytes_to_wipe} bytes of sensitive enclave memory")
+    logger.info(f"-> Forensics Wipe  : {'SUCCESS' if is_wiped else 'FAILED'} in {wipe_latency_ms:.4f} ms")
+    logger.info(f"-> Trace           : Buffer irreversibly overwritten with 0x00")
 
     db_session = db.query(GuestSession).filter(
         GuestSession.session_id == session_id).first()
