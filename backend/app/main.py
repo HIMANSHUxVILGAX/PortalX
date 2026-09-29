@@ -54,21 +54,21 @@ class ConnectionManager:
     async def connect(self, websocket: WebSocket, session_id: str):
         await websocket.accept()
         self.active_connections[session_id] = websocket
-        logger.info(f"WS Connected: {session_id}")
+        print(f"WS Connected: {session_id}")
 
     def disconnect(self, session_id: str):
         if session_id in self.active_connections:
             del self.active_connections[session_id]
-            logger.info(f"WS Disconnected: {session_id}")
+            print(f"WS Disconnected: {session_id}")
 
     async def kill_vault(self, session_id: str):
         if session_id in self.active_connections:
             websocket = self.active_connections[session_id]
             try:
                 await websocket.send_json({"action": "KILL", "reason": "Host revoked vault access."})
-                logger.info(f"WS KILL signal sent to: {session_id}")
+                print(f"WS KILL signal sent to: {session_id}")
             except Exception as e:
-                logger.error(f"WS Send Error on kill: {e}")
+                print(f"WS Send Error on kill: {e}")
 
 
 manager = ConnectionManager()
@@ -107,11 +107,11 @@ async def _auto_destroy_session(session_id: str, delay: int):
         if "buffer" in session and session["buffer"]:
             bytes_to_wipe = len(session["buffer"])
             wipe_latency_ms = zeroize_buffer(session["buffer"])
-            logger.info(f"")
-            logger.info(f"⏳ [PORTELX BACKEND] AUTO-TTL EXPIRED ⏳")
-            logger.info(f"-> Expired Session : {session_id}")
-            logger.info(f"-> Shredding       : {bytes_to_wipe} bytes")
-            logger.info(
+            print(f"")
+            print(f"⏳ [PORTELX BACKEND] AUTO-TTL EXPIRED ⏳")
+            print(f"-> Expired Session : {session_id}")
+            print(f"-> Shredding       : {bytes_to_wipe} bytes")
+            print(
                 f"-> Forensics Wipe  : SUCCESS in {wipe_latency_ms:.4f} ms")
 
 
@@ -172,7 +172,7 @@ class RiskScoreRequest(BaseModel):
 @app.on_event('startup')
 def startup_event():
     init_db()
-    logger.info("Database initialized.")
+    print("Database initialized.")
 
 
 def get_db():
@@ -371,7 +371,7 @@ async def vault_open(req: VaultOpenRequest, db: Session = Depends(get_db)):
         user = db.query(User).filter(User.handle == "@rahul").first()
 
     if user and user.pin_hash != f"hashed_{req.pin}":
-        logger.warning(f"Invalid PIN attempt for {req.handle}")
+        print(f"Invalid PIN attempt for {req.handle}")
         raise HTTPException(status_code=401, detail="Invalid PIN")
 
     # Generate the crypto UIT token
@@ -420,14 +420,14 @@ async def vault_open(req: VaultOpenRequest, db: Session = Depends(get_db)):
     db.add(new_session)
     db.commit()
 
-    logger.info(f"[PORTELX BACKEND] SECURE VAULT OPENED!")
-    logger.info(f"-> Session ID  : {session_id}")
-    logger.info(f"-> UIT Token   : {session_data['uit']}")
-    logger.info(
+    print(f"[PORTELX BACKEND] SECURE VAULT OPENED!")
+    print(f"-> Session ID  : {session_id}")
+    print(f"-> UIT Token   : {session_data['uit']}")
+    print(
         f"-> Risk Score  : {risk_assessment.get('risk_score', 'N/A')}/10 ({risk_assessment.get('risk_level', 'UNKNOWN')})")
-    logger.info(
+    print(
         f"-> Gemini Rec  : {risk_assessment.get('recommendation', '')}")
-    logger.info(f"-> DB Status   : Session Saved to SQLite Database.")
+    print(f"-> DB Status   : Session Saved to SQLite Database.")
 
     asyncio.create_task(_auto_destroy_session(session_id, ttl))
 
@@ -451,9 +451,9 @@ class PayRequest(BaseModel):
 
 @app.post("/api/vault/pay")
 async def vault_pay(req: PayRequest, db: Session = Depends(get_db)):
-    logger.info(f"[PORTELX BACKEND] INITIATING GUEST PAYMENT!")
-    logger.info(f"-> Merchant : {req.merchant_name} ({req.vpa})")
-    logger.info(f"-> Amount   : {req.amount}")
+    print(f"[PORTELX BACKEND] INITIATING GUEST PAYMENT!")
+    print(f"-> Merchant : {req.merchant_name} ({req.vpa})")
+    print(f"-> Amount   : {req.amount}")
 
     # Try to find the user from session or fallback to default
     session_record = db.query(GuestSession).filter(
@@ -467,7 +467,7 @@ async def vault_pay(req: PayRequest, db: Session = Depends(get_db)):
     # Hackathon Demo: Accept any PIN (or specifically check for length)
     # so the user doesn't get blocked during presentation if they type a random PIN.
     if not req.pin or len(req.pin) < 4:
-        logger.error(f"[ERROR] Payment FAILED: Invalid PIN format.")
+        print(f"[ERROR] Payment FAILED: Invalid PIN format.")
         return JSONResponse({"status": "error", "message": "PIN must be at least 4 digits!"}, status_code=403)
 
     # Log payment in SQLite
@@ -481,7 +481,7 @@ async def vault_pay(req: PayRequest, db: Session = Depends(get_db)):
     db.add(new_payment)
     db.commit()
 
-    logger.info(f"[SUCCESS] Payment SUCCESSFUL: Saved to SQLite Database.")
+    print(f"[SUCCESS] Payment SUCCESSFUL: Saved to SQLite Database.")
 
     return JSONResponse({"status": "success", "message": f"Paid Rs. {req.amount:,.2f} securely."})
 
@@ -500,14 +500,14 @@ async def vault_destroy(req: VaultDestroyRequest, db: Session = Depends(get_db))
     wipe_latency_ms = zeroize_buffer(sensitive_data)
     is_wiped = all(b == 0 for b in sensitive_data)
 
-    logger.info(f"")
-    logger.info(f"🚨 [PORTELX BACKEND] ZEROIZATION INITIATED 🚨")
-    logger.info(f"-> Target Session  : {session_id}")
-    logger.info(
+    print(f"")
+    print(f"🚨 [PORTELX BACKEND] ZEROIZATION INITIATED 🚨")
+    print(f"-> Target Session  : {session_id}")
+    print(
         f"-> Shredding       : {bytes_to_wipe} bytes of sensitive enclave memory")
-    logger.info(
+    print(
         f"-> Forensics Wipe  : {'SUCCESS' if is_wiped else 'FAILED'} in {wipe_latency_ms:.4f} ms")
-    logger.info(
+    print(
         f"-> Trace           : Buffer irreversibly overwritten with 0x00")
 
     db_session = db.query(GuestSession).filter(
