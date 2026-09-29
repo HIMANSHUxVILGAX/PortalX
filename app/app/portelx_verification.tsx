@@ -33,7 +33,9 @@ export default function VerificationScreen() {
   useEffect(() => {
     Animated.timing(fadeAnim, {
       toValue: 1,
-      duration: 600, useNativeDriver: true, }).start();
+      duration: 600,
+      useNativeDriver: true,
+    }).start();
 
     // Auto-start scanning simulation on entry
     startScanning();
@@ -47,10 +49,14 @@ export default function VerificationScreen() {
       Animated.sequence([
         Animated.timing(scanLineAnim, {
           toValue: 180,
-          duration: 1200, useNativeDriver: true, }),
+          duration: 1200,
+          useNativeDriver: true,
+        }),
         Animated.timing(scanLineAnim, {
           toValue: 0,
-          duration: 1200, useNativeDriver: true, }),
+          duration: 1200,
+          useNativeDriver: true,
+        }),
       ])
     ).start();
 
@@ -59,10 +65,14 @@ export default function VerificationScreen() {
       Animated.sequence([
         Animated.timing(pulseRing, {
           toValue: 1.15,
-          duration: 800, useNativeDriver: true, }),
+          duration: 800,
+          useNativeDriver: true,
+        }),
         Animated.timing(pulseRing, {
           toValue: 1,
-          duration: 800, useNativeDriver: true, }),
+          duration: 800,
+          useNativeDriver: true,
+        }),
       ])
     ).start();
 
@@ -84,8 +94,10 @@ export default function VerificationScreen() {
             setScanState(2);
             Animated.spring(matchCardAnim, {
               toValue: 0,
-              tension: 50, useNativeDriver: true, friction: 7,
-              useNativeDriver: true, }).start();
+              tension: 50,
+              friction: 7,
+              useNativeDriver: true,
+            }).start();
           } else {
             setScanState(0);
           }
@@ -101,8 +113,10 @@ export default function VerificationScreen() {
             setScanState(2);
             Animated.spring(matchCardAnim, {
               toValue: 0,
-              tension: 50, useNativeDriver: true, friction: 7,
-              useNativeDriver: true, }).start();
+              tension: 50,
+              friction: 7,
+              useNativeDriver: true,
+            }).start();
           } else {
             setScanState(0);
           }

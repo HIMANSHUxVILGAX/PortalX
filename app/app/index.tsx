@@ -67,7 +67,9 @@ export default function Home() {
       animValues.map(anim =>
         Animated.timing(anim, {
           toValue: 1,
-          duration: 550, useNativeDriver: true, })
+          duration: 550,
+          useNativeDriver: true,
+        })
       )
     ).start();
   }, []);

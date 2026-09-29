@@ -65,10 +65,14 @@ export default function CryptoPortfolioScreen() {
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 500, useNativeDriver: true, }),
+        duration: 500,
+        useNativeDriver: true,
+      }),
       Animated.timing(slideAnim, {
         toValue: 0,
-        duration: 500, useNativeDriver: true, }),
+        duration: 500,
+        useNativeDriver: true,
+      }),
     ]).start();
   }, []);
 

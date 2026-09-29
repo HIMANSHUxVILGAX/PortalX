@@ -10,7 +10,9 @@ export default function TrustedCircleScreen() {
   useEffect(() => {
     Animated.timing(fadeAnim, {
       toValue: 1,
-      duration: 600, useNativeDriver: true, }).start();
+      duration: 600,
+      useNativeDriver: true,
+    }).start();
   }, []);
 
   const contacts = [

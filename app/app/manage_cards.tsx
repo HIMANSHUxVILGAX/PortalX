@@ -34,12 +34,16 @@ const PaymentCard: React.FC<CardProps> = ({ type, bank, number, color, delay }) 
     Animated.parallel([
       Animated.timing(translateY, {
         toValue: 0,
-        duration: 500, useNativeDriver: true, delay,
-        useNativeDriver: true, }),
+        duration: 500,
+        delay,
+        useNativeDriver: true,
+      }),
       Animated.timing(opacity, {
         toValue: 1,
-        duration: 500, useNativeDriver: true, delay,
-        useNativeDriver: true, }),
+        duration: 500,
+        delay,
+        useNativeDriver: true,
+      }),
     ]).start();
   }, [delay, opacity, translateY]);
 
@@ -77,18 +81,26 @@ export default function ManageCardsScreen() {
         Animated.sequence([
           Animated.timing(nfcScale, {
             toValue: 1.5,
-            duration: 1000, useNativeDriver: true, }),
+            duration: 1000,
+            useNativeDriver: true,
+          }),
           Animated.timing(nfcScale, {
             toValue: 1,
-            duration: 0, useNativeDriver: true, }),
+            duration: 0,
+            useNativeDriver: true,
+          }),
         ]),
         Animated.sequence([
           Animated.timing(nfcOpacity, {
             toValue: 0,
-            duration: 1000, useNativeDriver: true, }),
+            duration: 1000,
+            useNativeDriver: true,
+          }),
           Animated.timing(nfcOpacity, {
             toValue: 1,
-            duration: 0, useNativeDriver: true, }),
+            duration: 0,
+            useNativeDriver: true,
+          }),
         ]),
       ])
     ).start();
