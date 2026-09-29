@@ -5,7 +5,7 @@ const debuggerHost = Constants.expoConfig?.hostUri;
 const hostIp = debuggerHost ? debuggerHost.split(':')[0] : '192.168.72.44';
 
 // Backend API base URL
-export const API_BASE_URL = `http://${hostIp}:8001`;
+export const API_BASE_URL = `http://${hostIp}:8002`;
 
 // Session Defaults
 export const DEFAULT_SESSION_TTL = 300;      // 5 minutes
