@@ -19,7 +19,7 @@ import type { SubscriptionTier } from '../src/types';
 let Purchases: any = null;
 try {
   Purchases = require('react-native-purchases').default;
-} catch (e) {}
+} catch (e) { }
 
 const isExpoGo =
   Constants.appOwnership === 'expo' ||
@@ -128,8 +128,8 @@ export default function SubscriptionScreen() {
     rawTier === 'free' || rawTier === 'basic'
       ? 'basic'
       : rawTier === 'pro' || rawTier === 'enterprise'
-      ? 'pro'
-      : 'standard';
+        ? 'pro'
+        : 'standard';
 
   const [selectedTier, setSelectedTier] = useState<SubscriptionTier>(normalizedCurrentTier);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -138,7 +138,7 @@ export default function SubscriptionScreen() {
     if (!Purchases || Platform.OS === 'web' || isExpoGo) return;
     try {
       Purchases.configure({ apiKey: REVENUECAT_API_KEY });
-    } catch (e) {}
+    } catch (e) { }
   }, []);
 
   const handleBack = () => router.back();
@@ -148,7 +148,7 @@ export default function SubscriptionScreen() {
       Alert.alert(
         'RevenueCat Restore',
         'Purchases checked with RevenueCat. Active entitlement: ' +
-          (subscription?.name || 'Standard Plan')
+        (subscription?.name || 'Standard Plan')
       );
       return;
     }

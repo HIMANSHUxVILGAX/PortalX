@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Animated, TextInput, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Animated, TextInput, Platform, Alert } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -79,10 +79,14 @@ export default function PortelxQRScanScreen() {
     if (data.includes('upi://pay')) {
       const urlParams = new URLSearchParams(data.split('?')[1]);
       vpa = urlParams.get('pa') || vpa;
-      name = urlParams.get('pn') ? decodeURIComponent(urlParams.get('pn')!) : name;
+      try {
+        name = urlParams.get('pn') ? decodeURIComponent(urlParams.get('pn')!) : name;
+      } catch (e) {
+        name = 'Unknown Merchant';
+      }
       amount = urlParams.get('am') || '';
     } else {
-      alert("Invalid QR! This is not a valid UPI payment QR code.");
+      Alert.alert("Invalid QR", "This is not a valid UPI payment QR code.");
       setScanned(false);
       return;
     }
@@ -92,27 +96,27 @@ export default function PortelxQRScanScreen() {
 
   const executePayment = async () => {
     if (!pin || pin.length < 4) {
-      alert("Please enter a valid 4-digit PIN!");
+      Alert.alert("Error", "Please enter a valid 4-digit PIN!");
       return;
     }
     setIsProcessing(true);
     try {
       const res = await api.makePayment({
         sessionId: session?.sessionId || '',
-        amount: parseFloat(paymentData.amount),
+        amount: parseFloat(paymentData.amount || '0'),
         vpa: paymentData.vpa,
         merchantName: paymentData.name,
         pin: pin
       });
       if (res.status === 'success' || res.status === 'completed') {
-        alert(res.message || 'Payment Successful');
+        Alert.alert("Success", res.message || 'Payment Successful');
         router.back();
       } else {
-        alert("Payment Failed: " + res.message);
+        Alert.alert("Payment Failed", res.message);
         setPin('');
       }
     } catch (e: any) {
-      alert("Network error or payment failed: " + (e.message || 'Unknown error'));
+      Alert.alert("Error", "Network error or payment failed: " + (e.message || 'Unknown error'));
       setPin('');
     }
     setIsProcessing(false);

@@ -1,5 +1,3 @@
-from crypto_core.zeroize import zeroize_buffer
-from crypto_core.uit import generate_uit, verify_uit
 import os
 import sys
 import time
@@ -26,6 +24,9 @@ ROOT_DIR = os.path.abspath(os.path.join(CURRENT_DIR, "../../"))
 CRYPTO_CORE_DIR = os.path.join(ROOT_DIR, "packages", "crypto-core")
 if CRYPTO_CORE_DIR not in sys.path:
     sys.path.insert(0, CRYPTO_CORE_DIR)
+
+from crypto_core.zeroize import zeroize_buffer
+from crypto_core.uit import generate_uit, verify_uit
 
 
 logger = logging.getLogger('portelx')
@@ -365,9 +366,7 @@ async def vault_open(req: VaultOpenRequest, db: Session = Depends(get_db)):
 
     if user and user.pin_hash != f"hashed_{req.pin}":
         logger.warning(f"Invalid PIN attempt for {req.handle}")
-        # Normally would fail here, but allowing to proceed as requested, or maybe we enforce it?
-        # The prompt says: "Make PIN validation configurable from DB (check against User.pin_hash) instead of hardcoded '1234'."
-        pass
+        raise HTTPException(status_code=401, detail="Invalid PIN")
 
     # Generate the crypto UIT token
     session_data = generate_uit(user_seed, host_device_id, session_ttl=ttl)

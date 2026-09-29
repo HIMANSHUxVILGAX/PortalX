@@ -241,7 +241,7 @@ export default function PortelXDashboard() {
 
                 {room.room_id !== 'N/A' && (
                   <View style={styles.roomFooter}>
-                    <Text style={styles.roomMetaText}>⏱️ {formatDuration(room.duration_seconds || (room.duration ? parseInt(room.duration) * 60 : 0))} • {new Date(room.created_at || room.date).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' })}</Text>
+                    <Text style={styles.roomMetaText}>⏱️ {formatDuration(room.duration_seconds || (room.duration ? parseInt(room.duration) * 60 : 0))} • {(() => { try { return new Date(room.created_at || room.date || Date.now()).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' }); } catch { return 'Recent'; } })()}</Text>
                     <Text style={styles.roomDispatchText}>Key sent via SMS</Text>
                   </View>
                 )}

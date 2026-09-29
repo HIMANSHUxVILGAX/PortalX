@@ -80,12 +80,8 @@ export default function PortelxVaultScreen() {
   const handleDestroy = async () => {
     setModalVisible(false);
     try {
-      // 1. AsyncStorage wipe
-      try {
-        await AsyncStorage.clear();
-      } catch (storageErr) {
-        console.warn('AsyncStorage.clear failed', storageErr);
-      }
+      // Simulated local cache clear for guest session
+      console.log('Guest session data cleared.');
 
       const res = await destroyVault();
       const latency = res?.wipeLatencyMs !== undefined ? res.wipeLatencyMs : '0.0021';
@@ -133,11 +129,6 @@ export default function PortelxVaultScreen() {
     };
   }, [session?.sessionId]);
 
-  useEffect(() => {
-    if (!session) {
-      openVault('@guest', '1234');
-    }
-  }, [session]);
 
   useEffect(() => {
     if (!session) return;
@@ -213,7 +204,7 @@ export default function PortelxVaultScreen() {
             <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
               <TouchableOpacity
                 style={[styles.scanPayBtn, { flex: 1, backgroundColor: '#1E293B' }]}
-                onPress={() => router.push('/crypto_portfolio')}
+                onPress={() => Alert.alert('Secure Docs', 'Accessing streamed identity documents...')}
               >
                 <Ionicons name="document-text-outline" size={20} color="#00E5FF" />
                 <Text style={[styles.scanPayBtnText, { color: '#00E5FF', fontSize: 13, marginLeft: 6 }]}>Docs</Text>

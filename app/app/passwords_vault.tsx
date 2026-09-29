@@ -34,7 +34,7 @@ export default function PasswordsVaultScreen() {
   const fetchPasswords = async () => {
     try {
       const data = await api.getPasswords();
-      setPasswords(data || []);
+      setPasswords(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Failed to fetch passwords:', error);
     }
@@ -122,7 +122,7 @@ export default function PasswordsVaultScreen() {
                 <View style={styles.cardHeader}>
                   <View style={styles.serviceInfo}>
                     <View style={styles.serviceIconPlaceholder}>
-                      <Text style={styles.serviceInitials}>{item.service.substring(0, 1).toUpperCase()}</Text>
+                      <Text style={styles.serviceInitials}>{item.service?.substring(0, 1)?.toUpperCase() || '?'}</Text>
                     </View>
                     <Text style={styles.serviceName}>{item.service}</Text>
                   </View>
