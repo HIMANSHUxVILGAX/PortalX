@@ -1,3 +1,5 @@
+from crypto_core.uit import generate_uit, verify_uit
+from crypto_core.zeroize import zeroize_buffer
 import os
 import sys
 import time
@@ -24,9 +26,6 @@ ROOT_DIR = os.path.abspath(os.path.join(CURRENT_DIR, "../../"))
 CRYPTO_CORE_DIR = os.path.join(ROOT_DIR, "packages", "crypto-core")
 if CRYPTO_CORE_DIR not in sys.path:
     sys.path.insert(0, CRYPTO_CORE_DIR)
-
-from crypto_core.zeroize import zeroize_buffer
-from crypto_core.uit import generate_uit, verify_uit
 
 
 logger = logging.getLogger('portelx')
@@ -371,7 +370,8 @@ async def vault_open(req: VaultOpenRequest, db: Session = Depends(get_db)):
     # Generate the crypto UIT token
     session_data = generate_uit(user_seed, host_device_id, session_ttl=ttl)
     # Dynamic volatile enclave buffer (dynamic memory allocation for session state + crypto buffers)
-    base_payload = f"PORTELX_ENCLAVE_{session_id}_{req.handle}_{user_seed}_{time.time()}".encode()
+    base_payload = f"PORTELX_ENCLAVE_{session_id}_{req.handle}_{user_seed}_{time.time()}".encode(
+    )
     # Dynamic chunk size between 64KB and 192KB varying on each session
     dynamic_entropy_size = 65536 + (os.urandom(2)[0] * 512)
     sensitive_data = bytearray(base_payload + os.urandom(dynamic_entropy_size))
@@ -493,7 +493,8 @@ async def vault_destroy(req: VaultDestroyRequest, db: Session = Depends(get_db))
     wipe_latency_ms = zeroize_buffer(sensitive_data)
     is_wiped = all(b == 0 for b in sensitive_data)
 
-    db_session = db.query(GuestSession).filter(GuestSession.session_id == session_id).first()
+    db_session = db.query(GuestSession).filter(
+        GuestSession.session_id == session_id).first()
     if db_session:
         db_session.is_active = False
         now_utc = datetime.datetime.now(datetime.timezone.utc)
@@ -578,13 +579,15 @@ class PasswordCreateRequest(BaseModel):
     username: str
     password: str
 
+
 @app.get("/api/passwords")
 async def get_passwords(db: Session = Depends(get_db)):
     user = db.query(User).filter(User.handle == "@rahul").first()
     if not user:
         return JSONResponse([])
-    
-    passwords = db.query(StoredPassword).filter(StoredPassword.user_id == user.id).all()
+
+    passwords = db.query(StoredPassword).filter(
+        StoredPassword.user_id == user.id).all()
     res = []
     for p in passwords:
         res.append({
@@ -595,12 +598,13 @@ async def get_passwords(db: Session = Depends(get_db)):
         })
     return JSONResponse(res)
 
+
 @app.post("/api/passwords")
 async def add_password(req: PasswordCreateRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.handle == "@rahul").first()
     if not user:
         return JSONResponse({"status": "error", "message": "User not found"}, status_code=404)
-        
+
     new_password = StoredPassword(
         user_id=user.id,
         service=req.service,
@@ -610,7 +614,7 @@ async def add_password(req: PasswordCreateRequest, db: Session = Depends(get_db)
     db.add(new_password)
     db.commit()
     db.refresh(new_password)
-    
+
     return JSONResponse({
         "status": "success",
         "password": {
@@ -620,6 +624,7 @@ async def add_password(req: PasswordCreateRequest, db: Session = Depends(get_db)
             "password": new_password.password
         }
     })
+
 
 @app.delete("/api/passwords/{id}")
 async def delete_password(id: int, db: Session = Depends(get_db)):

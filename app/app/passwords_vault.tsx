@@ -24,7 +24,7 @@ interface PasswordEntry {
 
 export default function PasswordsVaultScreen() {
   const router = useRouter();
-  
+
   const [passwords, setPasswords] = useState<PasswordEntry[]>([]);
 
   React.useEffect(() => {
@@ -39,10 +39,10 @@ export default function PasswordsVaultScreen() {
       console.error('Failed to fetch passwords:', error);
     }
   };
-  
+
   const [revealedIds, setRevealedIds] = useState<Set<string>>(new Set());
   const [modalVisible, setModalVisible] = useState(false);
-  
+
   // New password form state
   const [newService, setNewService] = useState('');
   const [newUsername, setNewUsername] = useState('');
@@ -68,7 +68,7 @@ export default function PasswordsVaultScreen() {
 
   const handleAddPassword = async () => {
     if (!newService || !newUsername || !newPassword) return;
-    
+
     try {
       await api.addPassword(newService, newUsername, newPassword);
       await fetchPasswords();
@@ -130,7 +130,7 @@ export default function PasswordsVaultScreen() {
                     <Ionicons name="trash-outline" size={20} color="#EF4444" />
                   </TouchableOpacity>
                 </View>
-                
+
                 <View style={styles.fieldContainer}>
                   <Text style={styles.fieldLabel}>USERNAME</Text>
                   <View style={styles.fieldRow}>
@@ -169,7 +169,7 @@ export default function PasswordsVaultScreen() {
           transparent={true}
           onRequestClose={() => setModalVisible(false)}
         >
-          <KeyboardAvoidingView 
+          <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             style={styles.modalContainer}
           >

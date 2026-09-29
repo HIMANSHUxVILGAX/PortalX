@@ -48,7 +48,7 @@ export default function PortelXDashboard() {
 
   useEffect(() => {
     fetchHistory();
-    
+
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -81,14 +81,14 @@ export default function PortelXDashboard() {
 
   const displayRooms = history && history.length > 0
     ? history.map((room, index) => {
-        if (index === 0) {
-          return {
-            ...room,
-            device_name: Device.modelName || room.device_name || 'Unknown Device',
-          };
-        }
-        return room;
-      })
+      if (index === 0) {
+        return {
+          ...room,
+          device_name: Device.modelName || room.device_name || 'Unknown Device',
+        };
+      }
+      return room;
+    })
     : [];
 
   const formatDuration = (seconds: number) => {
@@ -172,7 +172,7 @@ export default function PortelXDashboard() {
                 <Text style={styles.revenueCatText}>RevenueCat</Text>
               </View>
             </View>
-            
+
             <View style={styles.progressContainer}>
               <View style={styles.progressHeader}>
                 <Text style={styles.progressText}>7 of 10 sessions remaining</Text>
@@ -205,48 +205,49 @@ export default function PortelXDashboard() {
               </View>
             ) : (
               displayRooms.map((room, index) => {
-              const isActive = room.is_active || room.status === 'active' || room.status === 'ACTIVE';
+                const isActive = room.is_active || room.status === 'active' || room.status === 'ACTIVE';
 
-              return (
-              <View key={index} style={styles.roomItem}>
-                <View style={styles.roomItemTop}>
-                  <View style={styles.roomIdBox}>
-                    <Text style={styles.roomIdText}>{room.room_id}</Text>
-                  </View>
-                  {isActive ? (
-                    <TouchableOpacity 
-                      style={styles.panicBtn}
-                      onPress={() => handlePanicRevoke(room.session_id || room.room_id)}
-                    >
-                      <Ionicons name="warning" size={12} color="#FFF" style={{ marginRight: 4 }} />
-                      <Text style={styles.panicBtnText}>PANIC REVOKE (KILL)</Text>
-                    </TouchableOpacity>
-                  ) : (
-                    <View style={styles.shreddedBadge}>
-                      <Ionicons name={room.room_id === 'N/A' ? 'information-circle' : 'trash-bin'} size={12} color="#10B981" style={{ marginRight: 4 }} />
-                      <Text style={styles.shreddedText}>{room.status}{room.room_id !== 'N/A' && ' • 0x00'}</Text>
+                return (
+                  <View key={index} style={styles.roomItem}>
+                    <View style={styles.roomItemTop}>
+                      <View style={styles.roomIdBox}>
+                        <Text style={styles.roomIdText}>{room.room_id}</Text>
+                      </View>
+                      {isActive ? (
+                        <TouchableOpacity
+                          style={styles.panicBtn}
+                          onPress={() => handlePanicRevoke(room.session_id || room.room_id)}
+                        >
+                          <Ionicons name="warning" size={12} color="#FFF" style={{ marginRight: 4 }} />
+                          <Text style={styles.panicBtnText}>PANIC REVOKE (KILL)</Text>
+                        </TouchableOpacity>
+                      ) : (
+                        <View style={styles.shreddedBadge}>
+                          <Ionicons name={room.room_id === 'N/A' ? 'information-circle' : 'trash-bin'} size={12} color="#10B981" style={{ marginRight: 4 }} />
+                          <Text style={styles.shreddedText}>{room.status}{room.room_id !== 'N/A' && ' • 0x00'}</Text>
+                        </View>
+                      )}
                     </View>
-                  )}
-                </View>
 
-                <View style={styles.roomDetailRow}>
-                  <Ionicons name="phone-portrait-outline" size={14} color="#94A3B8" style={{ marginRight: 6 }} />
-                  <Text style={styles.roomDeviceText}>{room.device_name || room.device || 'Unknown Device'}</Text>
-                </View>
+                    <View style={styles.roomDetailRow}>
+                      <Ionicons name="phone-portrait-outline" size={14} color="#94A3B8" style={{ marginRight: 6 }} />
+                      <Text style={styles.roomDeviceText}>{room.device_name || room.device || 'Unknown Device'}</Text>
+                    </View>
 
-                <View style={styles.roomDetailRow}>
-                  <Ionicons name="location-outline" size={14} color="#94A3B8" style={{ marginRight: 6 }} />
-                  <Text style={styles.roomLocationText}>{room.location}</Text>
-                </View>
+                    <View style={styles.roomDetailRow}>
+                      <Ionicons name="location-outline" size={14} color="#94A3B8" style={{ marginRight: 6 }} />
+                      <Text style={styles.roomLocationText}>{room.location}</Text>
+                    </View>
 
-                {room.room_id !== 'N/A' && (
-                  <View style={styles.roomFooter}>
-                    <Text style={styles.roomMetaText}>⏱️ {formatDuration(room.duration_seconds || (room.duration ? parseInt(room.duration) * 60 : 0))} • {(() => { try { return new Date(room.created_at || room.date || Date.now()).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' }); } catch { return 'Recent'; } })()}</Text>
-                    <Text style={styles.roomDispatchText}>Key sent via SMS</Text>
+                    {room.room_id !== 'N/A' && (
+                      <View style={styles.roomFooter}>
+                        <Text style={styles.roomMetaText}>⏱️ {formatDuration(room.duration_seconds || (room.duration ? parseInt(room.duration) * 60 : 0))} • {(() => { try { return new Date(room.created_at || room.date || Date.now()).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch { return 'Recent'; } })()}</Text>
+                        <Text style={styles.roomDispatchText}>Key sent via SMS</Text>
+                      </View>
+                    )}
                   </View>
-                )}
-              </View>
-            )}))}
+                )
+              }))}
           </View>
         </View>
       </Animated.ScrollView>
