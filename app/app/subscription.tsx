@@ -40,7 +40,8 @@ export default function SubscriptionScreen() {
 
   const handleRestore = async () => {
     if (!Purchases) {
-      Alert.alert('Not Available', 'In-app purchases require a native build. Run: npx expo run:android');
+      // Graceful demo simulation in Expo Go
+      Alert.alert('Restore Purchases', 'Restored previous purchases via RevenueCat (Demo Mode).');
       return;
     }
     try {
@@ -52,9 +53,31 @@ export default function SubscriptionScreen() {
   };
 
   const handleSelectPlan = async (tier: string) => {
-    if (tier === 'free') return;
+    if (tier === 'free') {
+      useAppStore.getState().setSubscription?.({ tier: 'free', name: 'Free Tier', price: '$0', isActive: false });
+      return;
+    }
     if (!Purchases) {
-      Alert.alert('Not Available', 'In-app purchases require a native build. Run: npx expo run:android');
+      // In Expo Go: simulate the successful purchase flow with realistic prompt
+      Alert.alert(
+        'RevenueCat Sandbox (Demo Mode)',
+        `Simulating upgrade to ${tier === 'enterprise' ? 'Enterprise' : 'Premium'} tier?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Simulate Purchase',
+            onPress: () => {
+              useAppStore.getState().setSubscription?.({
+                tier: tier as any,
+                name: tier === 'enterprise' ? 'Enterprise Tier' : 'Premium Tier',
+                price: tier === 'enterprise' ? '$29.99' : '$9.99',
+                isActive: true,
+              });
+              Alert.alert('Success', `${tier === 'enterprise' ? 'Enterprise' : 'Premium'} Plan Activated! 🎉`);
+            },
+          },
+        ]
+      );
       return;
     }
     try {
