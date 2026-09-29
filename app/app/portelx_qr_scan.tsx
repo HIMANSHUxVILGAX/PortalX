@@ -33,14 +33,10 @@ export default function PortelxQRScanScreen() {
       Animated.sequence([
         Animated.timing(scanLineAnim, {
           toValue: SCAN_FRAME_SIZE,
-          duration: 1500,
-          useNativeDriver: true,
-        }),
+          duration: 1500, useNativeDriver: true, }),
         Animated.timing(scanLineAnim, {
           toValue: 0,
-          duration: 1500,
-          useNativeDriver: true,
-        })
+          duration: 1500, useNativeDriver: true, })
       ])
     ).start();
 

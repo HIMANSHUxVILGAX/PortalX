@@ -52,14 +52,10 @@ export default function PortelXDashboard() {
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 700,
-        useNativeDriver: true,
-      }),
+        duration: 700, useNativeDriver: true, }),
       Animated.timing(slideAnim, {
         toValue: 0,
-        duration: 700,
-        useNativeDriver: true,
-      }),
+        duration: 700, useNativeDriver: true, }),
     ]).start();
 
     // Pulse animation for the CTA button
@@ -67,14 +63,10 @@ export default function PortelXDashboard() {
       Animated.sequence([
         Animated.timing(pulseAnim, {
           toValue: 1.04,
-          duration: 1100,
-          useNativeDriver: true,
-        }),
+          duration: 1100, useNativeDriver: true, }),
         Animated.timing(pulseAnim, {
           toValue: 1,
-          duration: 1100,
-          useNativeDriver: true,
-        }),
+          duration: 1100, useNativeDriver: true, }),
       ])
     ).start();
   }, []);
